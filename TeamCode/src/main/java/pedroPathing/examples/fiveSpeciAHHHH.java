@@ -7,6 +7,7 @@ import com.pedropathing.pathgen.BezierLine;
 import com.pedropathing.pathgen.Path;
 import com.pedropathing.pathgen.PathChain;
 import com.pedropathing.pathgen.Point;
+import com.pedropathing.util.Constants;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -14,76 +15,86 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
 
-private final Pose startPose = new Pose(0.355,71.645, Math.toRadians(0));  // Starting position
-
-private Path scorePreload, park;
-private PathChain grabPickup1, grabPickup2, grabPickup3, scorePickup1, scorePickup2, scorePickup3;
-
+@Autonomous(name = "five speci ahh", group = "Examples")
+    public class fiveSpeciAHHHH extends OpMode {
+    private final Pose startPose = new Pose(0.355,71.645, Math.toRadians(0));  // Starting position
+    private Follower follower;
+    private Timer pathTimer, actionTimer, opmodeTimer;
+    private Path one;
+    private int pathState;
+    private PathChain two, three, four, five, six, seven, eight, nine, ten, eleven, twelve, thirteen, fourteen, fifteen, sixteen, seventeen, eighteen, nineteen;
 public void buildPaths() {
     // Path for scoring preload
-    one = new Path(new BezierLine(new Point(0.355,71.645,Point.CARTESIAN), new Point(48.768,78.030,Point.CARTESIAN)));
+    one = new Path(new BezierLine(new Point(0.355,71.645,Point.CARTESIAN), new Point(28,75,Point.CARTESIAN)));
     one.setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0));
   
     two = follower.pathBuilder()
-            .addPath(new BezierCurve(new Point(48.768,78.030,Point.CARTESIAN),new Point(14.187,46.818,Point.CARTESIAN),new Point(61.714,32.099,Point.CARTESIAN))
-            .setLinearHeadingInterpolation(pickup1Pose.getHeading(), scorePose.getHeading())
+            .addPath(new BezierCurve(
+                    new Point(28,75,Point.CARTESIAN),
+                    new Point(0.7,43.8,Point.CARTESIAN),
+                    new Point(50,30,Point.CARTESIAN)
+            ))
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     three = follower.pathBuilder()
-            .addPath(new BezierCurve(new Point(61.714, 32.099, Point.CARTESIAN), new Point(61.537, 15.429, Point.CARTESIAN),new Point(4.256, 22.167, Point.CARTESIAN)))
-            .setLinearHeadingInterpolation(scorePose.getHeading(), pickup1Pose.getHeading())
+            .addPath(new BezierLine(
+          new Point(50, 30, Point.CARTESIAN),
+          new Point(15, 30, Point.CARTESIAN)
+         ))
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     four = follower.pathBuilder()
             .addPath(new BezierCurve(
-          new Point(4.256, 22.167, Point.CARTESIAN),
-          new Point(99.310, 22.522, Point.CARTESIAN),
-          new Point(64.729, 5.498, Point.CARTESIAN),
-          new Point(4.433, 9.576, Point.CARTESIAN)
+          new Point(15, 30, Point.CARTESIAN),
+          new Point(70, 20, Point.CARTESIAN),
+          new Point(70, 20, Point.CARTESIAN),
+          new Point(15, 20, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(scorePose.getHeading(), pickup2Pose.getHeading())
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     five = follower.pathBuilder()
             .addPath(new BezierCurve(
-          new Point(4.433, 9.576, Point.CARTESIAN),
-          new Point(86.187, 10.108, Point.CARTESIAN),
-          new Point(58.522, 0.177, Point.CARTESIAN)
+          new Point(15, 30, Point.CARTESIAN),
+          new Point(70, 10, Point.CARTESIAN),
+          new Point(50, 10, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(pickup2Pose.getHeading(), scorePose.getHeading())
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     six = follower.pathBuilder()
             .addPath(new BezierLine(
-          new Point(58.522, 0.177, Point.CARTESIAN),
-          new Point(7.803, 0.887, Point.CARTESIAN)
+          new Point(50, 10, Point.CARTESIAN),
+          new Point(15, 10, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(scorePose.getHeading(), pickup3Pose.getHeading())
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     seven = follower.pathBuilder()
             .addPath(new BezierLine(
-          new Point(7.803, 0.887, Point.CARTESIAN),
-          new Point(17.379, 31.921, Point.CARTESIAN)
+          new Point(15, 10, Point.CARTESIAN),
+          new Point(30, 30, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(pickup3Pose.getHeading(), scorePose.getHeading())
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     eight = follower.pathBuilder()
             .addPath(new BezierLine(
-          new Point(17.379, 31.921, Point.CARTESIAN),
-          new Point(2.483, 31.567, Point.CARTESIAN)
+          new Point(30, 30, Point.CARTESIAN),
+          new Point(10, 30, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(pickup3Pose.getHeading(), scorePose.getHeading())
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     nine = follower.pathBuilder()
             .addPath(new BezierCurve(
-          new Point(2.483, 31.567, Point.CARTESIAN),
-          new Point(16.670, 71.113, Point.CARTESIAN),
-          new Point(48.768, 74.837, Point.CARTESIAN)
+          new Point(10, 30, Point.CARTESIAN),
+          new Point(10, 71, Point.CARTESIAN),
+          new Point(28, 75, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(pickup3Pose.getHeading(), scorePose.getHeading())
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     ten = follower.pathBuilder()
@@ -92,7 +103,7 @@ public void buildPaths() {
           new Point(16.670, 71.291, Point.CARTESIAN),
           new Point(18.266, 31.567, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0));
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     eleven = follower.pathBuilder()
@@ -100,7 +111,7 @@ public void buildPaths() {
           new Point(18.266, 31.567, Point.CARTESIAN),
           new Point(3.369, 31.921, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0));
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     twelve = follower.pathBuilder()
@@ -109,7 +120,7 @@ public void buildPaths() {
           new Point(17.025, 70.936, Point.CARTESIAN),
           new Point(48.946, 71.291, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0));
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     thirteen = follower.pathBuilder()
@@ -118,7 +129,7 @@ public void buildPaths() {
           new Point(17.202, 71.113, Point.CARTESIAN),
           new Point(17.557, 31.744, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0));
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     fourteen = follower.pathBuilder()
@@ -126,7 +137,7 @@ public void buildPaths() {
           new Point(17.557, 31.744, Point.CARTESIAN),
           new Point(3.015, 31.389, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0));
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     fifteen = follower.pathBuilder()
@@ -135,7 +146,7 @@ public void buildPaths() {
           new Point(7.803, 62.069, Point.CARTESIAN),
           new Point(48.414, 67.567, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0));
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     sixteen = follower.pathBuilder()
@@ -144,7 +155,7 @@ public void buildPaths() {
           new Point(15.429, 65.261, Point.CARTESIAN),
           new Point(17.557, 31.212, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0));
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     seventeen = follower.pathBuilder()
@@ -152,7 +163,7 @@ public void buildPaths() {
           new Point(17.557, 31.212, Point.CARTESIAN),
           new Point(3.015, 31.212, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0));
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     eighteen = follower.pathBuilder()
@@ -161,16 +172,16 @@ public void buildPaths() {
           new Point(10.463, 62.069, Point.CARTESIAN),
           new Point(48.059, 63.665, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0));
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
-    eleven = follower.pathBuilder()
+    nineteen = follower.pathBuilder()
             .addPath(new BezierCurve(
           new Point(48.059, 63.665, Point.CARTESIAN),
           new Point(11.350, 64.552, Point.CARTESIAN),
           new Point(8.512, 29.261, Point.CARTESIAN)
         ))
-            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0));
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
 }
@@ -198,7 +209,7 @@ public void autonomousPathUpdate() {
 
         case 3: // Wait until the robot returns to the scoring position
             if (!follower.isBusy()) {
-                follower.followPath(fourth, true);
+                follower.followPath(four, true);
                 setPathState(4);
             }
             break;
@@ -337,4 +348,4 @@ public void loop() {
     telemetry.addData("Path State", pathState);
     telemetry.addData("Position", follower.getPose().toString());
     telemetry.update();
-}
+}}
