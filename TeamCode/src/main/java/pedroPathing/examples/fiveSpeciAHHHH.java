@@ -17,7 +17,7 @@ import pedroPathing.constants.LConstants;
 
 @Autonomous(name = "five speci ahh", group = "Examples")
     public class fiveSpeciAHHHH extends OpMode {
-    private final Pose startPose = new Pose(0.355,71.645, Math.toRadians(0));  // Starting position
+    private final Pose startPose = new Pose(9,64, Math.toRadians(0));  // Starting position
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
     private Path one;
@@ -25,34 +25,42 @@ import pedroPathing.constants.LConstants;
     private PathChain two, three, four, five, six, seven, eight, nine, ten, eleven, twelve, thirteen, fourteen, fifteen, sixteen, seventeen, eighteen, nineteen;
 public void buildPaths() {
     // Path for scoring preload
-    one = new Path(new BezierLine(new Point(0.355,71.645,Point.CARTESIAN), new Point(28,75,Point.CARTESIAN)));
+    one = new Path(new BezierLine(
+            new Point(9,64,Point.CARTESIAN),
+            new Point(37,75,Point.CARTESIAN)
+    ));
     one.setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0));
   
     two = follower.pathBuilder()
             .addPath(new BezierCurve(
-                    new Point(28,75,Point.CARTESIAN),
+                    new Point(37,75,Point.CARTESIAN),
                     new Point(0.7,43.8,Point.CARTESIAN),
-                    new Point(50,30,Point.CARTESIAN)
+                    new Point(65,30,Point.CARTESIAN)
             ))
             .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     three = follower.pathBuilder()
             .addPath(new BezierLine(
-          new Point(50, 30, Point.CARTESIAN),
+          new Point(65, 30, Point.CARTESIAN),
           new Point(15, 30, Point.CARTESIAN)
          ))
             .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
 
     four = follower.pathBuilder()
-            .addPath(new BezierCurve(
-          new Point(15, 30, Point.CARTESIAN),
-          new Point(70, 20, Point.CARTESIAN),
-          new Point(70, 20, Point.CARTESIAN),
-          new Point(15, 20, Point.CARTESIAN)
-        ))
+            .addPath(new BezierLine(
+                    new Point(15, 30, Point.CARTESIAN),
+                    new Point(65, 28, Point.CARTESIAN)
+            ))
             .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+            .addPath(new BezierCurve(
+                    new Point(65, 28, Point.CARTESIAN),
+                    new Point(65,20, Point.CARTESIAN),
+                    new Point(15,20,Point.CARTESIAN)
+            ))
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+            .setPathEndTimeoutConstraint(3.0)
             .build();
 
     five = follower.pathBuilder()
