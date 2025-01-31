@@ -17,37 +17,57 @@ import pedroPathing.constants.LConstants;
 
 @Autonomous(name = "five speci ahh", group = "Examples")
     public class fiveSpeciAHHHH extends OpMode {
-    private final Pose startPose = new Pose(9,64, Math.toRadians(0));  // Starting position
+    private final Pose startPose = new Pose(8,61.5, Math.toRadians(0));  // Starting position
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
     private Path one;
     private int pathState;
-    private PathChain two, three, four, five, six, seven, eight, nine, ten, eleven, twelve, thirteen, fourteen, fifteen, sixteen, seventeen, eighteen, nineteen;
+    private PathChain pushSamples, three, four, five, six, seven, eight, nine, ten, eleven, twelve, thirteen, fourteen, fifteen, sixteen, seventeen, eighteen, nineteen;
 public void buildPaths() {
     // Path for scoring preload
     one = new Path(new BezierLine(
-            new Point(9,64,Point.CARTESIAN),
-            new Point(37,75,Point.CARTESIAN)
+            new Point(8,61.5,Point.CARTESIAN),
+            new Point(41,75,Point.CARTESIAN)
     ));
     one.setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0));
   
-    two = follower.pathBuilder()
+    pushSamples = follower.pathBuilder()
             .addPath(new BezierCurve(
-                    new Point(37,75,Point.CARTESIAN),
+                    new Point(41,75,Point.CARTESIAN),
                     new Point(0.7,43.8,Point.CARTESIAN),
-                    new Point(65,30,Point.CARTESIAN)
+                    new Point(65,28,Point.CARTESIAN)
+            ))
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+            .addPath(new BezierCurve( //three
+                    new Point(65, 28, Point.CARTESIAN),
+                    new Point(65, 22, Point.CARTESIAN),
+                    new Point(15, 25, Point.CARTESIAN)
+            ))
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+            .addPath(new BezierLine( // four
+                    new Point(15, 25, Point.CARTESIAN),
+                    new Point(65, 23, Point.CARTESIAN)
+            ))
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+            .addPath(new BezierCurve( // five
+                    new Point(65, 23, Point.CARTESIAN),
+                    new Point(65,10, Point.CARTESIAN),
+                    new Point(15,15,Point.CARTESIAN)
+            ))
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+            .addPath(new BezierLine( // six
+                    new Point(15, 15, Point.CARTESIAN),
+                    new Point(65, 13, Point.CARTESIAN)
+            ))
+            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+            .addPath(new BezierCurve( // seven
+                    new Point(65, 13, Point.CARTESIAN),
+                    new Point(65, 2, Point.CARTESIAN),
+                    new Point(15, 3, Point.CARTESIAN)
             ))
             .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
-
-    three = follower.pathBuilder()
-            .addPath(new BezierLine(
-          new Point(65, 30, Point.CARTESIAN),
-          new Point(15, 30, Point.CARTESIAN)
-         ))
-            .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-            .build();
-
+    /*
     four = follower.pathBuilder()
             .addPath(new BezierLine(
                     new Point(15, 30, Point.CARTESIAN),
@@ -191,7 +211,7 @@ public void buildPaths() {
         ))
             .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
             .build();
-
+    */
 }
 
 public void autonomousPathUpdate() {
@@ -203,11 +223,18 @@ public void autonomousPathUpdate() {
 
         case 1: // Wait until the robot is near the scoring position
             if (!follower.isBusy()) {
-                follower.followPath(two, true);
+                follower.followPath(pushSamples, true);
                 setPathState(2);
             }
             break;
 
+        case 2: // Wait until the robot is near the scoring position
+            if (!follower.isBusy()) {
+                setPathState(-1); // End the autonomous routine
+            }
+            break;
+
+        /*
         case 2: // Wait until the robot is near the first sample pickup position
             if (!follower.isBusy()) {
                 follower.followPath(three, true);
@@ -332,6 +359,8 @@ public void autonomousPathUpdate() {
                 setPathState(-1); // End the autonomous routine
             }
             break;
+
+         */
     }
 }
 
