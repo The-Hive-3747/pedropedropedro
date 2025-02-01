@@ -9,8 +9,10 @@ import com.pedropathing.pathgen.PathChain;
 import com.pedropathing.pathgen.Point;
 import com.pedropathing.util.Constants;
 import com.pedropathing.util.Timer;
+import com.pedropathing.commands.FollowPath;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.arcrobotics.ftclib.command.*;
 
 import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
@@ -66,12 +68,7 @@ public class fiveSpeciAHHHH extends OpMode {
             .build();
                 
             
-            
-            .
-public void buildPaths() {
-        
-}
-
+/*
 public void autonomousPathUpdate() {
     switch (pathState) {
         case 0: // Move from start to scoring position
@@ -91,134 +88,6 @@ public void autonomousPathUpdate() {
                 setPathState(-1); // End the autonomous routine
             }
             break;
-
-        /*
-        case 2: // Wait until the robot is near the first sample pickup position
-            if (!follower.isBusy()) {
-                follower.followPath(three, true);
-                setPathState(3);
-            }
-            break;
-
-        case 3: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(four, true);
-                setPathState(4);
-            }
-            break;
-
-        case 4: // Wait until the robot is near the second sample pickup position
-            if (!follower.isBusy()) {
-                follower.followPath(five, true);
-                setPathState(5);
-            }
-            break;
-
-        case 5: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(six, true);
-                setPathState(6);
-            }
-            break;
-
-        case 6: // Wait until the robot is near the third sample pickup position
-            if (!follower.isBusy()) {
-                follower.followPath(seven, true);
-                setPathState(7);
-            }
-            break;
-
-        case 7: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(eight, true);
-                setPathState(8);
-            }
-            break;
-
-        case 8: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(nine, true);
-                setPathState(9);
-            }
-            break;
-
-        case 9: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(ten, true);
-                setPathState(9);
-            }
-            break;
-
-        case 10: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(eleven, true);
-                setPathState(10);
-            }
-            break;
-
-        case 11: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(twelve, true);
-                setPathState(11);
-            }
-            break;
-
-        case 12: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(thirteen, true);
-                setPathState(12);
-            }
-            break;
-
-        case 13: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(fourteen, true);
-                setPathState(13);
-            }
-            break;
-
-        case 14: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(fifteen, true);
-                setPathState(14);
-            }
-            break;
-
-        case 15: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(sixteen, true);
-                setPathState(15);
-            }
-            break;
-
-        case 16: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(seventeen, true);
-                setPathState(16);
-            }
-            break;
-
-        case 17: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(eighteen, true);
-                setPathState(17);
-            }
-            break;
-
-        case 18: // Wait until the robot returns to the scoring position
-            if (!follower.isBusy()) {
-                follower.followPath(nineteen, true);
-                setPathState(18);
-            }
-            break;
-
-        case 19: // Wait until the robot is near the parking position
-            if (!follower.isBusy()) {
-                setPathState(-1); // End the autonomous routine
-            }
-            break;
-
-         */
     }
 }
 
@@ -226,21 +95,27 @@ public void setPathState(int pState) {
     pathState = pState;
     pathTimer.resetTimer();
 }
-
+*/
 @Override
 public void init() {
-    pathTimer = new Timer();
+    //pathTimer = new Timer();
     Constants.setConstants(FConstants.class, LConstants.class);
     follower = new Follower(hardwareMap);
     follower.setStartingPose(startPose);
-    buildPaths();
+    //buildPaths();
 }
 
 @Override
-public void loop() {
-    follower.update();
-    autonomousPathUpdate();
-    telemetry.addData("Path State", pathState);
-    telemetry.addData("Position", follower.getPose().toString());
-    telemetry.update();
+public void start() {
+    schedule(
+        new SequentialCommandGroup(
+            new FollowPath(preload, true)
+            new WaitCommand(200).andThen(new FollowPath(pushSamples(), true))
+        )
+        );
 }}
+
+@Override
+public void stop() {
+    CommandScheduler.getInstance().reset();
+}
