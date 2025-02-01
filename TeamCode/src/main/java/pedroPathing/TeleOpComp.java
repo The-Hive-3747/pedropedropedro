@@ -1,5 +1,7 @@
 package pedroPathing;
 
+import static pedroPathing.examples.fiveSpeciAHHHH.startPose;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -17,6 +19,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import pedroPathing.subsystem.IndicatorLight;
 //import pedroPathing.subsystem.OpModeTransfer;
+import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.SlideArm;
 import pedroPathing.subsystem.SpecimenArm;
 
@@ -55,7 +58,7 @@ public class TeleOpComp extends LinearOpMode {
     private ElapsedTime resetSlideTimer = new ElapsedTime();
     private ElapsedTime resetSpeciTimer = new ElapsedTime();
     private ElapsedTime criticalLoopTimer = new ElapsedTime();
-    private static Pose2d RESET_POSE = new Pose2d(0.0, 0.0, 0.0);
+    //private static Pose2d RESET_POSE = new Pose2d(0.0, 0.0, 0.0);
     private static double pivotTimerThreshold = 1000.0;
     private static double wristTimerThreshold = 500.0;
     private static double shoulderTimerThreshold = 500.0;
@@ -80,7 +83,7 @@ public class TeleOpComp extends LinearOpMode {
         rightLight.setColor(IndicatorLight.COLOR_RED);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
-        follower = new Follower(hardwareMap);
+        Follower follower = new Follower(hardwareMap);
         follower.setStartingPose(startPose);
 
         specimenArm = new SpecimenArm(hardwareMap, telemetry);
@@ -191,7 +194,7 @@ public class TeleOpComp extends LinearOpMode {
                     slideArm.nextWristPosition();
                 }
                 if (gamepad1.b) {
-                    drive.pose = new Pose2d(0.0, 0.0, 0.0);
+                    //drive.pose = new Pose2d(0.0, 0.0, 0.0);
                 }
             }
             if (gamepad1.dpad_up && !configWasRequested) {
@@ -234,7 +237,8 @@ public class TeleOpComp extends LinearOpMode {
                                     -leftJoyStickSpeedX*speedMultiplier)),
                     
             ));*/
-            drive.updatePoseEstimate();
+            //drive.updatePoseEstimate();
+            follower.update();
             if (configModeActivated){
                 if (HIVE_COLOR == TeamColor.TEAM_BLUE){
                     leftLight.setColor(IndicatorLight.COLOR_BLUE);
@@ -262,9 +266,9 @@ public class TeleOpComp extends LinearOpMode {
             telemetry.addData("Critical Loop MS", criticalLoopTimer.milliseconds());
             criticalLoopTimer.reset();
             telemetry.addData("Max Critical Loop Time", maxLoopTime);
-            telemetry.addData("x", drive.pose.position.x);
-            telemetry.addData("y", drive.pose.position.y);
-            telemetry.addData("heading (deg)", Math.toDegrees(drive.pose.heading.toDouble()));
+            telemetry.addData("X", follower.getPose().getX());
+            telemetry.addData("Y", follower.getPose().getY());
+            telemetry.addData("Heading in Degrees", Math.toDegrees(follower.getPose().getHeading()));
             telemetry.addData("Intake Status", slideArm.getIntakeStatus());
             telemetry.addData("Hang Requested", slideArm.hangRequested);
             slideArm.addSlideTelemetry();
@@ -294,7 +298,8 @@ public class TeleOpComp extends LinearOpMode {
 
             TelemetryPacket packet = new TelemetryPacket();
             packet.fieldOverlay().setStroke("#3F51B5");
-            Drawing.drawRobot(packet.fieldOverlay(), drive.pose);
+            //Drawing.drawRobot(packet.fieldOverlay(), drive.pose);
+            follower.drawOnDashBoard();
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }
     }
