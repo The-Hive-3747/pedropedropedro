@@ -4,11 +4,13 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.PoseVelocity2d;
-import com.acmerobotics.roadrunner.Rotation2d;
-import com.acmerobotics.roadrunner.Vector2d;
-import com.pedropathing.util.Drawing;
+//import com.acmerobotics.roadrunner.Pose2d;
+//import com.acmerobotics.roadrunner.PoseVelocity2d;
+//import com.acmerobotics.roadrunner.Rotation2d;
+//import com.acmerobotics.roadrunner.Vector2d;
+import com.pedropathing.util.Constants;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.localization.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -78,7 +80,8 @@ public class TeleOpComp extends LinearOpMode {
         rightLight.setColor(IndicatorLight.COLOR_RED);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
-        PinpointDrive drive = new PinpointDrive(hardwareMap, new Pose2d(0, 0, 0));
+        follower = new Follower(hardwareMap);
+        follower.setStartingPose(startPose);
 
         specimenArm = new SpecimenArm(hardwareMap, telemetry);
         slideArm = new SlideArm(hardwareMap, telemetry);
@@ -219,16 +222,18 @@ public class TeleOpComp extends LinearOpMode {
             if (leftJoyStickSpeedY>0) {
                 strafeBias = strafeBiasForward;
             }
-            drive.setDrivePowers(new PoseVelocity2d(
+            follower.setTeleOpMovementVectors(-leftJoyStickSpeedY*speedMultiplier, 
+                                              leftJoyStickSpeedX*speedMultiplier, 
+                                              -gamepad1.right_stick_x*speedMultiplier + (strafeBias*(-leftJoyStickSpeedX*speedMultiplier) + (strafeBiasY*(-leftJoyStickSpeedX*speedMultiplier)))
+                                            );
+            /*drive.setDrivePowers(new PoseVelocity2d(
                     Rotation2d.fromDouble(
                             -drive.pose.heading.toDouble()).times(
                             new Vector2d(
                                     -leftJoyStickSpeedY*speedMultiplier,
                                     -leftJoyStickSpeedX*speedMultiplier)),
-                    -gamepad1.right_stick_x*speedMultiplier +
-                            (strafeBias*(-leftJoyStickSpeedX*speedMultiplier) +
-                                    (strafeBiasY*(-leftJoyStickSpeedX*speedMultiplier)))
-            ));
+                    
+            ));*/
             drive.updatePoseEstimate();
             if (configModeActivated){
                 if (HIVE_COLOR == TeamColor.TEAM_BLUE){
