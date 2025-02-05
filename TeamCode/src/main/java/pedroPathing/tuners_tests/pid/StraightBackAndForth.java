@@ -15,6 +15,7 @@ import com.pedropathing.pathgen.Point;
 
 import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
+import pedroPathing.subsystem.SlideArm;
 
 /**
  * This is the StraightBackAndForth autonomous OpMode. It runs the robot in a specified distance
@@ -35,7 +36,7 @@ public class StraightBackAndForth extends OpMode {
     private Telemetry telemetryA;
 
     public static double DISTANCE = 40;
-
+    private SlideArm slideArm = null;
     private boolean forward = true;
 
     private Follower follower;
@@ -49,6 +50,7 @@ public class StraightBackAndForth extends OpMode {
      */
     @Override
     public void init() {
+        slideArm = new SlideArm(hardwareMap, telemetry);
         Constants.setConstants(FConstants.class, LConstants.class);
         follower = new Follower(hardwareMap);
 
@@ -72,6 +74,7 @@ public class StraightBackAndForth extends OpMode {
      */
     @Override
     public void loop() {
+        slideArm.setWristToReady();
         follower.update();
         if (!follower.isBusy()) {
             if (forward) {

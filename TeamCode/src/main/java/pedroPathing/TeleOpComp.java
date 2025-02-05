@@ -1,6 +1,6 @@
 package pedroPathing;
 
-import static pedroPathing.examples.fiveSpeciAHHHH.startPose;
+// import static pedroPathing.examples.fiveSpeciAHHHH.startPose;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
@@ -17,6 +17,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import pedroPathing.constants.FConstants;
+import pedroPathing.constants.LConstants;
 import pedroPathing.subsystem.IndicatorLight;
 //import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.OpModeTransfer;
@@ -26,6 +28,7 @@ import pedroPathing.subsystem.SpecimenArm;
 @TeleOp(name="TeleOpComp")
 @Config
 public class TeleOpComp extends LinearOpMode {
+    public static Pose startPose = new Pose(8,61.5, Math.toRadians(0));
     public static enum TeamColor {TEAM_BLUE, TEAM_RED}
     public static enum SampleColor {SAMPLE_BLUE, SAMPLE_RED, SAMPLE_YELLOW}
     public static TeamColor HIVE_COLOR = TeamColor.TEAM_BLUE;
@@ -82,7 +85,7 @@ public class TeleOpComp extends LinearOpMode {
         leftLight.setColor(IndicatorLight.COLOR_RED);
         rightLight.setColor(IndicatorLight.COLOR_RED);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-
+        Constants.setConstants(FConstants.class, LConstants.class);
         Follower follower = new Follower(hardwareMap);
         follower.setStartingPose(startPose);
 
@@ -225,9 +228,10 @@ public class TeleOpComp extends LinearOpMode {
             if (leftJoyStickSpeedY>0) {
                 strafeBias = strafeBiasForward;
             }
-            follower.setTeleOpMovementVectors(-leftJoyStickSpeedY*speedMultiplier, 
-                                              leftJoyStickSpeedX*speedMultiplier, 
-                                              -gamepad1.right_stick_x*speedMultiplier + (strafeBias*(-leftJoyStickSpeedX*speedMultiplier) + (strafeBiasY*(-leftJoyStickSpeedX*speedMultiplier)))
+            follower.setTeleOpMovementVectors(-(gamepad1.left_stick_y),
+                                                -(gamepad1.left_stick_x),
+                                              -gamepad1.right_stick_x,//-gamepad1.right_stick_x*speedMultiplier + (strafeBias*(-leftJoyStickSpeedX*speedMultiplier) + (strafeBiasY*(-leftJoyStickSpeedX*speedMultiplier))),
+                                            true
                                             );
             /*drive.setDrivePowers(new PoseVelocity2d(
                     Rotation2d.fromDouble(
