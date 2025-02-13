@@ -4,13 +4,14 @@ import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-// import com.acmerobotics.roadrunner.Action;
+import com.arcrobotics.ftclib.command.CommandBase;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.arcrobotics.ftclib.*;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -23,7 +24,7 @@ public class SpecimenArm {
     public enum ClawState {OPEN, CLOSE}
     private ClawState clawState = ClawState.OPEN;
     private Servo leftShoulder = null;
-    private Servo claw = null;
+    private ServoImplEx claw = null;
     public DcMotor rightShoulder = null;
     private ServoImplEx leftShoulderEx = null;
     private ShoulderState shoulderPosition = ShoulderState.COLLECT;
@@ -35,8 +36,8 @@ public class SpecimenArm {
     private boolean scoreRequested = false;
     private double shoulderTimerThreshold = 500.0;
     public static int R_SHOULDER_STOW_POS = 0; //0.07;
-    public static int R_SHOULDER_COLLECT_POS = 485; //500;//495;//490;//500; //440; //125;
-    public static int R_SHOULDER_ENTER_POS = 120;//113;//125; //490;
+    public static int R_SHOULDER_COLLECT_POS = 480; //470; //485; //500;//495;//490;//500; //440; //125;
+    public static int R_SHOULDER_ENTER_POS = 130; //120;//113;//125; //490;
     public static int R_SHOULDER_SCORE_POS = 219;//260; //235;
     public static double CLAW_OPEN = 1.00; //0.95; //0.85;
     public static double CLAW_CLOSE = 0.61; //0.25;
@@ -50,9 +51,10 @@ public class SpecimenArm {
     public static double SPECIMENARM_MOVE_TIME = 1000.0;
     public static double SPECIMENCLAW_OPEN_TIME = 1000.0;
     public static double LATCH_TIME_THRESHOLD = 150.0;
+    public static double SPECIMENARM_COLLECT_THRESHOLD = 10.0;
     public static double SCORE_LATCH_TIME = 1.0;
     public static double LATCH_SPEED = 0.8;
-    public static double MOVE_SPEED = 0.4;
+    public static double MOVE_SPEED = 0.5;
     public static double COLLECT_SPEED =0.0;
     public static double R_SHOULDER_RESET_POWER = -0.2;
 
@@ -65,9 +67,10 @@ public class SpecimenArm {
 
 
         leftShoulder = hardwareMap.get(Servo.class, "left_shoulder"); // Intake: 11 even
-        claw = hardwareMap.get(Servo.class, "claw");
+        claw = hardwareMap.get(ServoImplEx.class, "claw");
         rightShoulder = hardwareMap.get(DcMotor.class, "right_shoulder"); // Ready: 26.75
         leftShoulderEx = hardwareMap.get(ServoImplEx.class, "left_shoulder");
+        rightShoulder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightShoulder.setDirection(DcMotorSimple.Direction.REVERSE);
         rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
@@ -80,16 +83,20 @@ public class SpecimenArm {
             rightShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             rightShoulder.setPower(0);
         }
+        if (shoulderPosition != ShoulderState.ENTER && rightShoulder.getCurrentPosition() +SPECIMENARM_COLLECT_THRESHOLD > R_SHOULDER_COLLECT_POS){
+            rightShoulder.setPower(0);
+            shoulderPosition = ShoulderState.COLLECT;
+        }
     }
     public void nextClawState() {
-        if (clawState == ClawState.OPEN) {
-            clawStateClose();
-        }
-        else {
-            clawStateOpen();
-            //shoulderPosition = ShoulderState.COLLECT;
-            goToCollectArmState();
-        }
+            if (clawState == ClawState.OPEN) {
+                clawStateClose();
+            }
+            else {
+                clawStateOpen();
+                //shoulderPosition = ShoulderState.COLLECT;
+                goToCollectArmState();
+            }
     }
     public void clawStateOpen(){
         claw.setPosition(CLAW_OPEN);
@@ -99,77 +106,117 @@ public class SpecimenArm {
         claw.setPosition(CLAW_CLOSE);
         clawState = ClawState.CLOSE;
     }
-    /*
-    public class doAutoClawStateOpen implements Action {
+    public void makeLimp(){
+        rightShoulder.setPower(0);
+        claw.setPwmDisable();
+    }
+
+    public class doAutoClawStateOpen extends CommandBase {
+        boolean isDone = false;
+
+        public doAutoClawStateOpen() {
+        }
         @Override
-        public boolean run(@NonNull TelemetryPacket packet) {
+        public void initialize() {
+            isDone = false;
+        }
+        @Override
+        public void execute() {
             if (specimenClawDone) {
                 specimenClawDone = false;
                 specimenClawTime.reset();
                 clawStateOpen();
-                return true;
+                isDone = false;
+                return;
             }
             if (specimenClawTime.milliseconds() < SPECIMENCLAW_OPEN_TIME) {
-                return true;
+                isDone = false;
+                return;
             }
             specimenClawDone = true;
-            return false;
+            isDone = true;
+        }
+        @Override
+        public boolean isFinished() {
+            return isDone;
         }
     }
-    public com.acmerobotics.roadrunner.Action autoClawStateOpen() {
-        return new doAutoClawStateOpen();
-    }
-    public class doAutoClawStateClose implements Action {
+    public class doAutoClawStateClose extends CommandBase {
+        boolean isDone = false;
+
+        public doAutoClawStateClose() {
+        }
         @Override
-        public boolean run(@NonNull TelemetryPacket packet) {
+        public void initialize() {
+            isDone = false;
+        }
+        @Override
+        public void execute() {
             if (specimenClawDone) {
                 specimenClawDone = false;
                 specimenClawTime.reset();
                 clawStateClose();
-                return true;
+                isDone = false;
+                return;
             }
             if (specimenClawTime.milliseconds() < SPECIMENCLAW_OPEN_TIME) {
-                return true;
+                isDone = false;
+                return;
             }
             specimenClawDone = true;
-            return false;
+            isDone = true;
+        }
+        @Override
+        public boolean isFinished() {
+            return isDone;
         }
     }
 
-    public com.acmerobotics.roadrunner.Action autoClawStateClose() {
-        return new doAutoClawStateClose();
-    }
-    */
+    /*public void shoulderPowerPosition(){
+        if (rightShoulder.getCurrentPosition() == R_SHOULDER_COLLECT_POS) {
+            rightShoulder.setPower(0);
+        }else if (rightShoulder.getCurrentPosition() == R_SHOULDER_ENTER_POS){
+            rightShoulder.setPower(LATCH_SPEED);
+        }else{
+            rightShoulder.setPower(MOVE_SPEED);
+        }
+    }*/
+
     public void goToNextSpecimenState(){
         telemetry.addData("Status", "Shoulder Moved");
         switch(shoulderPosition){
             case ENTER:
+                rightShoulder.setPower(LATCH_SPEED);
                 scoreRequested=true;
                 latchTime.reset();
                 shoulderPosition = ShoulderState.SCORE;
                 rightShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                 //rightShoulder.setTargetPosition(R_SHOULDER_SCORE_POS);
                 //rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                rightShoulder.setPower(LATCH_SPEED);
                 //leftShoulder.setPosition(L_SHOULDER_ENTER_POS);
                 //rightShoulder.setPosition(R_SHOULDER_COLLECT_POS);
                 break;
             case STOW:
             case COLLECT:
-                scoreRequested = false;
-                shoulderPosition = ShoulderState.ENTER;
-                rightShoulder.setTargetPosition(R_SHOULDER_ENTER_POS);
-                rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                rightShoulder.setPower(MOVE_SPEED);
+                //if (rightShoulder.getCurrentPosition() < R_SHOULDER_COLLECT_POS){
+                    rightShoulder.setPower(MOVE_SPEED);
+                    scoreRequested = false;
+                    shoulderPosition = ShoulderState.ENTER;
+                    rightShoulder.setTargetPosition(R_SHOULDER_ENTER_POS);
+                    rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                //}else{
+                    //rightShoulder.setPower(0);
+                //}
                 //leftShoulder.setPosition(L_SHOULDER_COLLECT_POS);
                 //rightShoulder.setPosition(R_SHOULDER_ENTER_POS);
                 break;
             case SCORE:
+                rightShoulder.setPower(MOVE_SPEED);
                 scoreRequested = false;
                 shoulderPosition = ShoulderState.COLLECT;
                 rightShoulder.setTargetPosition(R_SHOULDER_COLLECT_POS);
                 rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                rightShoulder.setPower(MOVE_SPEED);
+
                 break;
             default:
                 telemetry.addData("Shoulder", "went wrong");
@@ -207,26 +254,41 @@ public class SpecimenArm {
         shoulderPosition = ShoulderState.STOW;
         rightShoulder.setPower(0);
     }
-    /*
-    public com.acmerobotics.roadrunner.Action nextSpecimenStateAction() {
-        return new SpecimenArmNextState();
-    }
 
-    public class SpecimenArmNextState implements Action {
+    public class SpecimenArmNextState extends CommandBase {
+        boolean isDone = false;
+
+        public SpecimenArmNextState() {
+        }
+
         @Override
-        public boolean run(@NonNull TelemetryPacket packet) {
+        public void initialize() {
+            isDone = false;
+        }
+
+        @Override
+        public void execute() {
             if (specimenArmDone) {
                 specimenArmDone = false;
                 specimenArmTime.reset();
                 goToNextSpecimenState();
-                return true;
+                isDone = false;
+                return;
             }
             if (specimenArmTime.milliseconds() < SPECIMENARM_MOVE_TIME) {
-                return true;
+                isDone = false;
             }
             specimenArmDone = true;
-            return false;
+            if (rightShoulder.getTargetPosition() == R_SHOULDER_COLLECT_POS) {
+                rightShoulder.setPower(0);
+            }
+            isDone = true;
         }
-    }*/
+
+        @Override
+        public boolean isFinished() {
+            return isDone;
+        }
+    }
 }
 

@@ -50,7 +50,7 @@ public class StraightBackAndForth extends OpMode {
      */
     @Override
     public void init() {
-        slideArm = new SlideArm(hardwareMap, telemetry);
+        slideArm = new SlideArm(hardwareMap, telemetry, true);
         Constants.setConstants(FConstants.class, LConstants.class);
         follower = new Follower(hardwareMap);
 

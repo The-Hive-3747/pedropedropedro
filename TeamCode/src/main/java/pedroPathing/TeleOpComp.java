@@ -1,26 +1,17 @@
 package pedroPathing;
 
-// import static pedroPathing.examples.fiveSpeciAHHHH.startPose;
-
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-//import com.acmerobotics.roadrunner.Pose2d;
-//import com.acmerobotics.roadrunner.PoseVelocity2d;
-//import com.acmerobotics.roadrunner.Rotation2d;
-//import com.acmerobotics.roadrunner.Vector2d;
-import com.pedropathing.util.Constants;
-import com.pedropathing.follower.Follower;
-import com.pedropathing.localization.Pose;
+import com.arcrobotics.ftclib.geometry.Pose2d;
+import com.arcrobotics.ftclib.geometry.Vector2d;
+import com.pedropathing.util.Drawing;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import pedroPathing.constants.FConstants;
-import pedroPathing.constants.LConstants;
 import pedroPathing.subsystem.IndicatorLight;
-//import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.SlideArm;
 import pedroPathing.subsystem.SpecimenArm;
@@ -28,7 +19,6 @@ import pedroPathing.subsystem.SpecimenArm;
 @TeleOp(name="TeleOpComp")
 @Config
 public class TeleOpComp extends LinearOpMode {
-    public static Pose startPose = new Pose(8,61.5, Math.toRadians(0));
     public static enum TeamColor {TEAM_BLUE, TEAM_RED}
     public static enum SampleColor {SAMPLE_BLUE, SAMPLE_RED, SAMPLE_YELLOW}
     public static TeamColor HIVE_COLOR = TeamColor.TEAM_BLUE;
@@ -63,7 +53,7 @@ public class TeleOpComp extends LinearOpMode {
     private ElapsedTime criticalLoopTimer = new ElapsedTime();
     //private static Pose2d RESET_POSE = new Pose2d(0.0, 0.0, 0.0);
     private static double pivotTimerThreshold = 1000.0;
-    private static double wristTimerThreshold = 500.0;
+    private static double wristTimerThreshold = 750.0;
     private static double shoulderTimerThreshold = 500.0;
     private static double resetPivotTimerThreshold = 1000.0;
     private static double resetSlideTimerThreshold = 1000.0;
@@ -72,8 +62,9 @@ public class TeleOpComp extends LinearOpMode {
     public static float RIGHT_TRIGGER_THRESHOLD = 0.7f;
     private static double STICK_X_LEFT = -0.6;
     private static double STICK_X_RIGHT = 0.6;
-    private static double SLOW_SPEED = 0.5;
+    private static double NORMAL_SPEED = 0.8;
     private static double LUDICROUS_SPEED = 1.0;
+    private static double SLOW_SPEED = 0.5;
     private double maxLoopTime = 0.0;
     @Override
     public void runOpMode() throws InterruptedException {
@@ -85,12 +76,11 @@ public class TeleOpComp extends LinearOpMode {
         leftLight.setColor(IndicatorLight.COLOR_RED);
         rightLight.setColor(IndicatorLight.COLOR_RED);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        Constants.setConstants(FConstants.class, LConstants.class);
-        Follower follower = new Follower(hardwareMap);
-        follower.setStartingPose(startPose);
+
+        //PinpointDrive drive = new PinpointDrive(hardwareMap, new Pose2d(0, 0, 0));
 
         specimenArm = new SpecimenArm(hardwareMap, telemetry);
-        slideArm = new SlideArm(hardwareMap, telemetry);
+        slideArm = new SlideArm(hardwareMap, telemetry, false);
         //leftLight.setColor(IndicatorLight.COLOR_GREEN);
         //rightLight.setColor(IndicatorLight.COLOR_GREEN);
         if (HIVE_COLOR == TeamColor.TEAM_BLUE) {
@@ -167,22 +157,26 @@ public class TeleOpComp extends LinearOpMode {
                 if (gamepad2.y && pivotTimer.milliseconds() > pivotTimerThreshold) {
                     telemetry.addData("Status", "Pivoting Up");
                     pivotTimer.reset();
+                    specimenArm.clawStateClose();
                     slideArm.pivotUp();
                 }
                 if (gamepad2.x && pivotTimer.milliseconds() > pivotTimerThreshold) {
                     telemetry.addData("Status", "Pivoting Down");
                     pivotTimer.reset();
+                    specimenArm.clawStateClose();
                     slideArm.pivotDown();
                 }
-                if (gamepad2.back) {
+                if (gamepad1.left_bumper && gamepad1.right_bumper) {
                     slideArm.makeLimp();
+                    specimenArm.makeLimp();
                 }
                 if (gamepad2.right_bumper) {
                     slideArm.activateIntakeWithoutSensor();
                 }
-                /*if (gamepad2.left_bumper) {
+                if (gamepad2.left_bumper) {
+                    slideArm.isKeeperBlock();
                     slideArm.activateIntakeWithSensor();
-                }*/
+                }
                 if (!gamepad2.right_bumper && !gamepad2.left_bumper) {
                     slideArm.stopIntake();
                 }
@@ -206,9 +200,9 @@ public class TeleOpComp extends LinearOpMode {
             } else if (!gamepad1.dpad_up && configWasRequested) {
                 configWasRequested = false;
             }
-            speedMultiplier = SLOW_SPEED;
+            speedMultiplier = NORMAL_SPEED;
             if (gamepad1.left_bumper){
-                speedMultiplier = LUDICROUS_SPEED;
+                speedMultiplier = SLOW_SPEED;
             }
 
 
@@ -228,21 +222,17 @@ public class TeleOpComp extends LinearOpMode {
             if (leftJoyStickSpeedY>0) {
                 strafeBias = strafeBiasForward;
             }
-            follower.setTeleOpMovementVectors(-(gamepad1.left_stick_y),
-                                                -(gamepad1.left_stick_x),
-                                              -gamepad1.right_stick_x,//-gamepad1.right_stick_x*speedMultiplier + (strafeBias*(-leftJoyStickSpeedX*speedMultiplier) + (strafeBiasY*(-leftJoyStickSpeedX*speedMultiplier))),
-                                            true
-                                            );
             /*drive.setDrivePowers(new PoseVelocity2d(
                     Rotation2d.fromDouble(
                             -drive.pose.heading.toDouble()).times(
                             new Vector2d(
                                     -leftJoyStickSpeedY*speedMultiplier,
                                     -leftJoyStickSpeedX*speedMultiplier)),
-                    
-            ));*/
-            //drive.updatePoseEstimate();
-            follower.update();
+                    -gamepad1.right_stick_x*speedMultiplier +
+                            (strafeBias*(-leftJoyStickSpeedX*speedMultiplier) +
+                                    (strafeBiasY*(-leftJoyStickSpeedX*speedMultiplier)))
+            ));
+            drive.updatePoseEstimate();*/
             if (configModeActivated){
                 if (HIVE_COLOR == TeamColor.TEAM_BLUE){
                     leftLight.setColor(IndicatorLight.COLOR_BLUE);
@@ -270,11 +260,14 @@ public class TeleOpComp extends LinearOpMode {
             telemetry.addData("Critical Loop MS", criticalLoopTimer.milliseconds());
             criticalLoopTimer.reset();
             telemetry.addData("Max Critical Loop Time", maxLoopTime);
-            telemetry.addData("X", follower.getPose().getX());
-            telemetry.addData("Y", follower.getPose().getY());
-            telemetry.addData("Heading in Degrees", Math.toDegrees(follower.getPose().getHeading()));
+            telemetry.addData("Intake Distance", slideArm.getIntakeDistaceCM());
+            telemetry.addData("Intake Color:", slideArm.detectColor());
+            //telemetry.addData("x", drive.pose.position.x);
+            //telemetry.addData("y", drive.pose.position.y);
+            //telemetry.addData("heading (deg)", Math.toDegrees(drive.pose.heading.toDouble()));
             telemetry.addData("Intake Status", slideArm.getIntakeStatus());
             telemetry.addData("Hang Requested", slideArm.hangRequested);
+            telemetry.addData("Wrist Status", slideArm.getWristPosition());
             slideArm.addSlideTelemetry();
             telemetry.addData("Right Shoulder Ticks", specimenArm.rightShoulder.getCurrentPosition());
             telemetry.addData("Hit gamepad2.X to move shoulder","");
@@ -303,7 +296,6 @@ public class TeleOpComp extends LinearOpMode {
             TelemetryPacket packet = new TelemetryPacket();
             packet.fieldOverlay().setStroke("#3F51B5");
             //Drawing.drawRobot(packet.fieldOverlay(), drive.pose);
-            follower.drawOnDashBoard();
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }
     }

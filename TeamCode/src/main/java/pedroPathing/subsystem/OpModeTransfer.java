@@ -1,15 +1,14 @@
 package pedroPathing.subsystem;
 
-// import com.acmerobotics.roadrunner.Pose2d;
+//import com.acmerobotics.roadrunner.Pose2d;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import com.arcrobotics.ftclib.geometry.Pose2d;
+
+//import org.firstinspires.ftc.teamcode.TeleOpComp.TeamColor;
 import pedroPathing.TeleOpComp.TeamColor;
 
-
 public class OpModeTransfer {
-    // public static Pose2d autoPose = new Pose2d(0,0,0);
+    //public static Pose2d autoPose = new Pose2d(0,0,0);
     public static TeamColor autoColor = TeamColor.TEAM_BLUE;
 
 }
