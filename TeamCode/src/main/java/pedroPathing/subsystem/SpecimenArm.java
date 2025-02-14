@@ -56,7 +56,7 @@ public class SpecimenArm {
 
 
 
-    public SpecimenArm(HardwareMap hm, Telemetry tele) {
+    public SpecimenArm(HardwareMap hm, Telemetry tele, boolean resetMotors) {
         hardwareMap = hm;
         telemetry = tele;
         telemetry.addData("Specimen Arm Status", "initializing");
@@ -66,7 +66,10 @@ public class SpecimenArm {
         claw = hardwareMap.get(ServoImplEx.class, "claw");
         rightShoulder = hardwareMap.get(DcMotor.class, "right_shoulder"); // Ready: 26.75
         leftShoulderEx = hardwareMap.get(ServoImplEx.class, "left_shoulder");
-        rightShoulder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        if (resetMotors){
+            rightShoulder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        }
+
         rightShoulder.setDirection(DcMotorSimple.Direction.REVERSE);
         rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }

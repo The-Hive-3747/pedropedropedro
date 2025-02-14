@@ -4,13 +4,16 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.arcrobotics.ftclib.geometry.Pose2d;
-import com.arcrobotics.ftclib.geometry.Vector2d;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.localization.Pose;
+import com.pedropathing.util.Constants;
 import com.pedropathing.util.Drawing;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import pedroPathing.constants.FConstants;
+import pedroPathing.constants.LConstants;
 import pedroPathing.subsystem.IndicatorLight;
 import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.SlideArm;
@@ -62,10 +65,12 @@ public class TeleOpComp extends LinearOpMode {
     public static float RIGHT_TRIGGER_THRESHOLD = 0.7f;
     private static double STICK_X_LEFT = -0.6;
     private static double STICK_X_RIGHT = 0.6;
-    private static double NORMAL_SPEED = 0.8;
+    private static double NORMAL_SPEED = 0.7; //0.8;
     private static double LUDICROUS_SPEED = 1.0;
     private static double SLOW_SPEED = 0.5;
     private double maxLoopTime = 0.0;
+    private Follower follower;
+    private final Pose startPose = new Pose(0,0,0);
     @Override
     public void runOpMode() throws InterruptedException {
 
@@ -77,9 +82,12 @@ public class TeleOpComp extends LinearOpMode {
         rightLight.setColor(IndicatorLight.COLOR_RED);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
+        Constants.setConstants(FConstants.class, LConstants.class);
+        follower = new Follower(hardwareMap);
+        follower.setStartingPose(startPose);
         //PinpointDrive drive = new PinpointDrive(hardwareMap, new Pose2d(0, 0, 0));
 
-        specimenArm = new SpecimenArm(hardwareMap, telemetry);
+        specimenArm = new SpecimenArm(hardwareMap, telemetry, false);
         slideArm = new SlideArm(hardwareMap, telemetry, false);
         //leftLight.setColor(IndicatorLight.COLOR_GREEN);
         //rightLight.setColor(IndicatorLight.COLOR_GREEN);
@@ -91,7 +99,7 @@ public class TeleOpComp extends LinearOpMode {
         waitForStart();
 
         slideArm.setWristToReady();
-
+        follower.startTeleopDrive();
         leftLight.setColor(IndicatorLight.COLOR_BEECON);
         rightLight.setColor(IndicatorLight.COLOR_BEECON);
 
@@ -191,7 +199,7 @@ public class TeleOpComp extends LinearOpMode {
                     slideArm.nextWristPosition();
                 }
                 if (gamepad1.b) {
-                    //drive.pose = new Pose2d(0.0, 0.0, 0.0);
+                    follower.setPose(startPose);
                 }
             }
             if (gamepad1.dpad_up && !configWasRequested) {
@@ -222,6 +230,14 @@ public class TeleOpComp extends LinearOpMode {
             if (leftJoyStickSpeedY>0) {
                 strafeBias = strafeBiasForward;
             }
+            follower.setTeleOpMovementVectors(
+                    -leftJoyStickSpeedY*speedMultiplier,
+                    -leftJoyStickSpeedX*speedMultiplier,
+                    -gamepad1.right_stick_x*speedMultiplier +
+                            strafeBias*(-leftJoyStickSpeedX*speedMultiplier) +
+                                    strafeBiasY*(-leftJoyStickSpeedX*speedMultiplier),
+                    false);
+            follower.update();
             /*drive.setDrivePowers(new PoseVelocity2d(
                     Rotation2d.fromDouble(
                             -drive.pose.heading.toDouble()).times(
@@ -262,31 +278,30 @@ public class TeleOpComp extends LinearOpMode {
             telemetry.addData("Max Critical Loop Time", maxLoopTime);
             telemetry.addData("Intake Distance", slideArm.getIntakeDistaceCM());
             telemetry.addData("Intake Color:", slideArm.detectColor());
-            //telemetry.addData("x", drive.pose.position.x);
-            //telemetry.addData("y", drive.pose.position.y);
-            //telemetry.addData("heading (deg)", Math.toDegrees(drive.pose.heading.toDouble()));
+            telemetry.addData("x", follower.getPose().getX());
+            telemetry.addData("y", follower.getPose().getY());
+            telemetry.addData("heading (deg)", Math.toDegrees(follower.getPose().getHeading()));
             telemetry.addData("Intake Status", slideArm.getIntakeStatus());
             telemetry.addData("Hang Requested", slideArm.hangRequested);
             telemetry.addData("Wrist Status", slideArm.getWristPosition());
             slideArm.addSlideTelemetry();
             telemetry.addData("Right Shoulder Ticks", specimenArm.rightShoulder.getCurrentPosition());
-            telemetry.addData("Hit gamepad2.X to move shoulder","");
-            telemetry.addData("Hit gamepad2.Y to move claw","");
-            telemetry.addData("Hit gamepad2.A to pivot for hang","");
-            telemetry.addData("Hit gamepad2.B to hang from slides","");
+            telemetry.addData("Hit gamepad1.X to move shoulder","");
+            telemetry.addData("Hit gamepad1.Y to move claw","");
+            telemetry.addData("Hit gamepad2.B to pivot for hang","");
+            telemetry.addData("Hit gamepad2.A to hang from slides","");
             telemetry.addData("Hit gamepad1.left_bumper to change speed level","");
             telemetry.addData("Hit gamepad2.left_bumper to activate the intake with the sensor","");
             telemetry.addData("Hit gamepad2.right_trigger to score sample in bucket","");
-            telemetry.addData("Hit gamepad2.left_trigger to force wrist to front","");
+            telemetry.addData("Hit gamepad2.left_trigger to change wrist pivot","");
             telemetry.addData("Hit gamepad2.right_bumper to activate the intake without the sensor","");
-            telemetry.addData("Hit gamepad2.dpad UP to pivot slide arm UP", "");
-            telemetry.addData("Hit gamepad2.dpad DOWN to pivot slide arm DOWN", "");
+            telemetry.addData("Hit gamepad2.Y to pivot slide arm UP", "");
+            telemetry.addData("Hit gamepad2.X to pivot slide arm DOWN", "");
             telemetry.addData("Hit gamepad2.dpad RIGHT to extend the slide arm - WITH LIMITER","");
             telemetry.addData("Hit gamepad2.dpad LEFT to retract the slide arm - WITH LIMITER","");
             telemetry.addData("Hit gamepad2 Right Stick Button to STOW specimen arm","");
-            telemetry.addData("Hit the BACK button to cut power to slide arm", "");
-            telemetry.addData("Cutting power to slide arm will cause it to DROP", "");
-            telemetry.addData("Hit gamepad1.Y to reset roadrunner orientation.", "");
+            //telemetry.addData("Hit the gamepad1.BACK button to slow release hang", "");
+            telemetry.addData("Hit gamepad1.B to reset pedro orientation.", "");
             telemetry.addData("Hit gamepad1.back to slowly come down from hang.", "");
             telemetry.addData("Hit gamepad1 dpad UP to go into CONFIGURE", "");
             telemetry.addData("--------------------------------CONFIG MODE", "");

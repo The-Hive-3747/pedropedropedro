@@ -1,13 +1,13 @@
 package pedroPathing.examples;
 
-import android.widget.GridLayout;
-
 import com.pedropathing.follower.Follower;
-import com.pedropathing.pathgen.Path;
 import com.pedropathing.util.Constants;
 
+import pedroPathing.TeleOpComp;
 import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
+import pedroPathing.subsystem.IndicatorLight;
+import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.SlideArm;
 
 import com.pedropathing.localization.Pose;
@@ -16,21 +16,17 @@ import com.pedropathing.pathgen.BezierLine;
 import com.pedropathing.pathgen.PathBuilder;
 import com.pedropathing.pathgen.PathChain;
 import com.pedropathing.pathgen.Point;
-import com.pedropathing.util.Timer;
-//import com.pedropathing.commands.FollowPath;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.arcrobotics.ftclib.command.*;
-import com.qualcomm.robotcore.hardware.configuration.annotations.ExpansionHubPIDFVelocityParams;
 
-import pedroPathing.constants.FConstants;
-import pedroPathing.constants.LConstants;
-import pedroPathing.subsystem.SlideArm;
 import pedroPathing.subsystem.SpecimenArm;
 
-@Autonomous(name = "five speci ahh", group = "Examples")
-public class fiveSpeciAHHHH extends LinearOpMode {
+@Autonomous(name = "FiveSpecimenAuto")
+public class FiveSpecimenAuto extends LinearOpMode {
+    boolean teamChangeRequested = false;
+    TeleOpComp.TeamColor HIVE_COLOR = TeleOpComp.TeamColor.TEAM_BLUE;
+    public String pathState = null;
     private SlideArm slideArm = null;
     private SpecimenArm specimenArm = null;
     private CommandScheduler scheduler = null;
@@ -44,7 +40,6 @@ public class fiveSpeciAHHHH extends LinearOpMode {
                         new Point(8, 61.5, Point.CARTESIAN),
                         new Point(39, 75, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-                //.setZeroPowerAccelerationMultiplier(2)
                 .build();
     }
     public static PathChain pushSamples() {
@@ -81,31 +76,20 @@ public class fiveSpeciAHHHH extends LinearOpMode {
                         new Point(12,5, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-                //.setZeroPowerAccelerationMultiplier(2)
                 .build();
-    }
-    public static PathChain pickup1Specimen() {
-        return new PathBuilder()
-                .addPath(new BezierLine(
-                        new Point(20,2,Point.CARTESIAN),
-                        new Point(12,5, Point.CARTESIAN)
-                ))
-                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-                .build();
-
     }
     public static PathChain score1Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
                         new Point(12, 5, Point.CARTESIAN),
                         new Point(12, 70, Point.CARTESIAN),
-                        new Point(39, 73.5, Point.CARTESIAN)
+                        new Point(39, 73, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
 
     }
-    public static PathChain goTo2Specimen() {
+    public static PathChain pickup2Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
                         new Point(39, 73, Point.CARTESIAN),
@@ -120,22 +104,13 @@ public class fiveSpeciAHHHH extends LinearOpMode {
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
     }
-    public static PathChain pickup2Specimen() {
-        return new PathBuilder()
-                .addPath(new BezierLine(
-                        new Point(13, 42, Point.CARTESIAN),
-                        new Point(13, 39, Point.CARTESIAN)
-                ))
-                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-                .build();
-    }
 
     public static PathChain score2Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
                         new Point(13, 39, Point.CARTESIAN),
                         new Point(0, 60, Point.CARTESIAN),
-                        new Point(40, 71, Point.CARTESIAN)
+                        new Point(40.5, 71, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
@@ -143,7 +118,7 @@ public class fiveSpeciAHHHH extends LinearOpMode {
     public static PathChain pickup3Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(40, 71, Point.CARTESIAN),
+                        new Point(40.5, 71, Point.CARTESIAN),
                         new Point(31, 73, Point.CARTESIAN),
                         new Point(20, 45, Point.CARTESIAN)
                 ))
@@ -160,7 +135,7 @@ public class fiveSpeciAHHHH extends LinearOpMode {
                 .addPath(new BezierCurve(
                         new Point(14, 42, Point.CARTESIAN),
                         new Point(0, 60, Point.CARTESIAN),
-                        new Point(40, 69, Point.CARTESIAN)
+                        new Point(40.5, 69, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
@@ -168,7 +143,7 @@ public class fiveSpeciAHHHH extends LinearOpMode {
     public static PathChain pickup4Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(40, 69, Point.CARTESIAN),
+                        new Point(40.5, 69, Point.CARTESIAN),
                         new Point(31, 73, Point.CARTESIAN),
                         new Point(20, 45, Point.CARTESIAN)
                 ))
@@ -185,25 +160,25 @@ public class fiveSpeciAHHHH extends LinearOpMode {
                 .addPath(new BezierCurve(
                         new Point(14, 41, Point.CARTESIAN),
                         new Point(0, 60, Point.CARTESIAN),
-                        new Point(41, 67, Point.CARTESIAN)
+                        new Point(40.5, 67, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
     }
 
     public class FollowPreload extends CommandBase {
-        //boolean isDone = false;
         boolean followerStarted = false;
         public FollowPreload() {}
         @Override
         public void initialize() {
-            //isDone = false;
             followerStarted = false;
         }
         @Override
         public void execute() {
             if (!followerStarted) {
                 follower.followPath(preload());
+                pathState = "score preload";
+
                 followerStarted = true;
             }
         }
@@ -214,18 +189,17 @@ public class fiveSpeciAHHHH extends LinearOpMode {
     }
 
     public class FollowPushSamples extends CommandBase {
-        //boolean isDone = false;
         boolean followerStarted = false;
         public FollowPushSamples() {}
         @Override
         public void initialize() {
-            //isDone = false;
             followerStarted = false;
         }
         @Override
         public void execute() {
             if (!followerStarted) {
                 follower.followPath(pushSamples());
+                pathState = "pushSamples";
                 followerStarted = true;
             }
         }
@@ -234,32 +208,7 @@ public class fiveSpeciAHHHH extends LinearOpMode {
             return !follower.isBusy();
         }
     }
-
-    public class FollowPickup1Specimen extends CommandBase {
-        //boolean isDone = false;
-        boolean followerStarted = false;
-        public FollowPickup1Specimen() {}
-        @Override
-        public void initialize() {
-            //isDone = false;
-            followerStarted = false;
-        }
-        @Override
-        public void execute() {
-            if (!followerStarted) {
-                follower.followPath(pickup1Specimen());
-                followerStarted = true;
-            }
-        }
-        @Override
-        public boolean isFinished() {
-            return !follower.isBusy();
-        }
-    }
-
-
     public class FollowScore1Specimen extends CommandBase {
-        //boolean isDone = false;
         boolean followerStarted = false;
         public FollowScore1Specimen() {}
         @Override
@@ -270,26 +219,7 @@ public class fiveSpeciAHHHH extends LinearOpMode {
         public void execute() {
             if (!followerStarted) {
                 follower.followPath(score1Specimen());
-                followerStarted = true;
-            }
-        }
-        @Override
-        public boolean isFinished() {
-            return !follower.isBusy();
-        }
-    }
-    public class FollowGoTo2Specimen extends CommandBase {
-        //boolean isDone = false;
-        boolean followerStarted = false;
-        public FollowGoTo2Specimen() {}
-        @Override
-        public void initialize() {
-            followerStarted = false;
-        }
-        @Override
-        public void execute() {
-            if (!followerStarted) {
-                follower.followPath(goTo2Specimen());
+                pathState = "score 2nd speci";
                 followerStarted = true;
             }
         }
@@ -299,7 +229,6 @@ public class fiveSpeciAHHHH extends LinearOpMode {
         }
     }
     public class FollowPickup2Specimen extends CommandBase {
-        //boolean isDone = false;
         boolean followerStarted = false;
         public FollowPickup2Specimen() {}
         @Override
@@ -310,6 +239,7 @@ public class fiveSpeciAHHHH extends LinearOpMode {
         public void execute() {
             if (!followerStarted) {
                 follower.followPath(pickup2Specimen());
+                pathState = "pickup 3rd speci";
                 followerStarted = true;
             }
         }
@@ -318,8 +248,8 @@ public class fiveSpeciAHHHH extends LinearOpMode {
             return !follower.isBusy();
         }
     }
+
     public class FollowScore2Specimen extends CommandBase {
-        //boolean isDone = false;
         boolean followerStarted = false;
         public FollowScore2Specimen() {}
         @Override
@@ -330,6 +260,7 @@ public class fiveSpeciAHHHH extends LinearOpMode {
         public void execute() {
             if (!followerStarted) {
                 follower.followPath(score2Specimen());
+                pathState = "score 3rd speci";
                 followerStarted = true;
             }
         }
@@ -339,7 +270,6 @@ public class fiveSpeciAHHHH extends LinearOpMode {
         }
     }
     public class FollowPickup3Specimen extends CommandBase {
-        //boolean isDone = false;
         boolean followerStarted = false;
         public FollowPickup3Specimen() {}
         @Override
@@ -350,6 +280,7 @@ public class fiveSpeciAHHHH extends LinearOpMode {
         public void execute() {
             if (!followerStarted) {
                 follower.followPath(pickup3Specimen());
+                pathState = "pickup 4th speci";
                 followerStarted = true;
             }
         }
@@ -359,7 +290,6 @@ public class fiveSpeciAHHHH extends LinearOpMode {
         }
     }
     public class FollowScore3Specimen extends CommandBase {
-        //boolean isDone = false;
         boolean followerStarted = false;
         public FollowScore3Specimen() {}
         @Override
@@ -370,6 +300,7 @@ public class fiveSpeciAHHHH extends LinearOpMode {
         public void execute() {
             if (!followerStarted) {
                 follower.followPath(score3Specimen());
+                pathState = "score 4th speci";
                 followerStarted = true;
             }
         }
@@ -389,6 +320,7 @@ public class fiveSpeciAHHHH extends LinearOpMode {
         public void execute() {
             if (!followerStarted) {
                 follower.followPath(pickup4Specimen());
+                pathState = "pickup 5th speci";
                 followerStarted = true;
             }
         }
@@ -408,6 +340,7 @@ public class fiveSpeciAHHHH extends LinearOpMode {
         public void execute() {
             if (!followerStarted) {
                 follower.followPath(score4Specimen());
+                pathState = "score 5th speci";
                 followerStarted = true;
             }
         }
@@ -416,20 +349,47 @@ public class fiveSpeciAHHHH extends LinearOpMode {
             return !follower.isBusy();
         }
     }
-
-
-
-
     @Override
     public void runOpMode() {
         Constants.setConstants(FConstants.class, LConstants.class);
         follower = new Follower(hardwareMap);
         follower.setStartingPose(startPose);
         slideArm = new SlideArm(hardwareMap, telemetry, true);
-        specimenArm = new SpecimenArm(hardwareMap, telemetry);
+        specimenArm = new SpecimenArm(hardwareMap, telemetry, true);
+
+
+        IndicatorLight leftLight = new IndicatorLight(hardwareMap, telemetry, "left_light");
+        IndicatorLight rightLight = new IndicatorLight(hardwareMap, telemetry, "right_light");
+        leftLight.setColor(IndicatorLight.COLOR_RED);
+        rightLight.setColor(IndicatorLight.COLOR_RED);
+        while (!isStarted() && !isStopRequested()) {
+            if (gamepad1.dpad_right && !teamChangeRequested) {
+                teamChangeRequested = true;
+                if (HIVE_COLOR == TeleOpComp.TeamColor.TEAM_BLUE) {
+                    HIVE_COLOR = TeleOpComp.TeamColor.TEAM_RED;
+                    OpModeTransfer.autoColor = TeleOpComp.TeamColor.TEAM_RED;
+                } else {
+                    HIVE_COLOR = TeleOpComp.TeamColor.TEAM_BLUE;
+                    OpModeTransfer.autoColor = TeleOpComp.TeamColor.TEAM_BLUE;
+                }
+            }
+            if (!gamepad1.dpad_right && teamChangeRequested) {
+                teamChangeRequested = false;
+            }
+            if (HIVE_COLOR == TeleOpComp.TeamColor.TEAM_BLUE) {
+                leftLight.setColor(IndicatorLight.COLOR_BLUE);
+                rightLight.setColor(IndicatorLight.COLOR_SAGE);
+            } else {
+                leftLight.setColor(IndicatorLight.COLOR_RED);
+                rightLight.setColor(IndicatorLight.COLOR_SAGE);
+            }
+        }
+
         waitForStart();
         scheduler = CommandScheduler.getInstance();
         slideArm.slideBrakes();
+        leftLight.setColor(IndicatorLight.COLOR_AZURE);
+        rightLight.setColor(IndicatorLight.COLOR_AZURE);
         scheduler.schedule(
                 new SequentialCommandGroup(
                         slideArm.new wristStow(),
@@ -450,8 +410,7 @@ public class fiveSpeciAHHHH extends LinearOpMode {
                         new WaitCommand(80),
                         specimenArm.new doAutoClawStateOpen(),
                         specimenArm.new SpecimenArmNextState(),
-                        this.new FollowGoTo2Specimen(),
-                        //this.new FollowPickup2Specimen(),
+                        this.new FollowPickup2Specimen(),
                         specimenArm.new doAutoClawStateClose()
                                 .andThen(
                                         specimenArm.new SpecimenArmNextState()
@@ -499,7 +458,7 @@ public class fiveSpeciAHHHH extends LinearOpMode {
             follower.update();
 
             // Feedback to Driver Hub
-            telemetry.addData("path state", "this is useless but i dont wanna get rid of it cuz it should be implemented in the future. guys ive been here for 4 hours i acc cannot think :)");
+            telemetry.addData("path state",  pathState);
             telemetry.addData("x", follower.getPose().getX());
             telemetry.addData("y", follower.getPose().getY());
             telemetry.addData("heading", follower.getPose().getHeading());
