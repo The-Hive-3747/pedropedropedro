@@ -60,6 +60,7 @@ public class SlideArm {
     public static double SLIDE_POWER_TEST = 0.1;
     public static double SLIDE_POWER = 0.9;//0.2;nex
     public static double SLIDE_POWER_RELEASE = 0.1;
+    public static double SLIDE_HOLD_POWER = 0.1;
     public static double SLIDE_POWER_HANG_HOLD = 0.8; //1.0; //0.6;
     public static int SLIDE_SLOW_STEP = 20;
     public static int SLIDE_STEP = 240;//60;
@@ -136,9 +137,9 @@ public class SlideArm {
         //pivotMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         //leftSlideMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         //rightSlideMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        pivotMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        leftSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        rightSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        pivotMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         //TODO: set polarity of motors
         pivotMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         rightIntake.setDirection(DcMotor.Direction.REVERSE);
@@ -462,6 +463,14 @@ public class SlideArm {
     }
     public int getBackSlideTicks() {
         return rightSlideMotor.getCurrentPosition();
+    }
+    public void slideBrakes() {
+        leftSlideMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightSlideMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftSlideMotor.setPower(-SLIDE_HOLD_POWER);
+        rightSlideMotor.setPower(SLIDE_HOLD_POWER);
+
+
     }
     public void activateIntakeWithSensor(){
         if (intakeColor.getDistance(DistanceUnit.CM) > INTAKE_DISTANCE_STOP_CM){

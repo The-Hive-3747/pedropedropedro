@@ -1,9 +1,6 @@
 package pedroPathing.subsystem;
 
-import androidx.annotation.NonNull;
-
 import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.arcrobotics.ftclib.command.CommandBase;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -11,7 +8,6 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.arcrobotics.ftclib.*;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -49,8 +45,8 @@ public class SpecimenArm {
     public static double R_SHOULDER_PRE_SCORE_POS = 0.35; //New variable for Idaho
     public static double SHOULDER_OFFSET = 0.021;
     public static double SPECIMENARM_MOVE_TIME = 1000.0;
-    public static double SPECIMENCLAW_OPEN_TIME = 1000.0;
-    public static double LATCH_TIME_THRESHOLD = 150.0;
+    public static double SPECIMENCLAW_OPEN_TIME = 200.0; //1000.0;
+    public static double SPECIMENARM_SCORE_TIME = 150.0;
     public static double SPECIMENARM_COLLECT_THRESHOLD = 10.0;
     public static double SCORE_LATCH_TIME = 1.0;
     public static double LATCH_SPEED = 0.8;
@@ -76,7 +72,7 @@ public class SpecimenArm {
     }
 
     public void update(){
-        if(scoreRequested && latchTime.milliseconds()>LATCH_TIME_THRESHOLD){
+        if(scoreRequested && latchTime.milliseconds()> SPECIMENARM_SCORE_TIME){
             scoreRequested = false;
             //rightShoulder.setTargetPosition(R_SHOULDER_SCORE_POS);
             //rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -275,7 +271,7 @@ public class SpecimenArm {
                 isDone = false;
                 return;
             }
-            if (specimenArmTime.milliseconds() < SPECIMENARM_MOVE_TIME) {
+            if (specimenArmTime.milliseconds() < SPECIMENARM_SCORE_TIME) {
                 isDone = false;
             }
             specimenArmDone = true;
