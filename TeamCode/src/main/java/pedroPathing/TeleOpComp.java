@@ -45,6 +45,10 @@ public class TeleOpComp extends LinearOpMode {
     private boolean retractResetNeeded = false;
     private boolean pivotResetNeeded = false;
     private boolean speciResetNeeded = false;
+    private boolean wasPivoting = false;
+    private boolean motorsWereZeroed = false;
+    private boolean slideWasAutoExtend = false;
+    private boolean isIntaking = false;
     private SpecimenArm specimenArm = null;
     private ElapsedTime shoulderTimer = new ElapsedTime();
     private SlideArm slideArm = null;
@@ -71,6 +75,7 @@ public class TeleOpComp extends LinearOpMode {
     private double maxLoopTime = 0.0;
     private Follower follower;
     private final Pose startPose = new Pose(0,0,0);
+    private boolean resetMotors = false;
     @Override
     public void runOpMode() throws InterruptedException {
 
@@ -91,17 +96,27 @@ public class TeleOpComp extends LinearOpMode {
         slideArm = new SlideArm(hardwareMap, telemetry, false);
         //leftLight.setColor(IndicatorLight.COLOR_GREEN);
         //rightLight.setColor(IndicatorLight.COLOR_GREEN);
-        if (HIVE_COLOR == TeamColor.TEAM_BLUE) {
-            HIVE_COLOR = TeamColor.TEAM_RED;
-        }else{
-            HIVE_COLOR = TeamColor.TEAM_BLUE;
+        if (HIVE_COLOR == TeleOpComp.TeamColor.TEAM_BLUE) {
+            leftLight.setColor(IndicatorLight.COLOR_BLUE);
+            rightLight.setColor(IndicatorLight.COLOR_BEECON);
+        } else {
+            leftLight.setColor(IndicatorLight.COLOR_RED);
+            rightLight.setColor(IndicatorLight.COLOR_BEECON);
+        }
+        while (!isStarted() && !isStopRequested()) {
+            if (gamepad1.back && !resetMotors) {
+                resetMotors = true;
+                rightLight.setColor(IndicatorLight.COLOR_VIOLET);
+                slideArm.resetPivotEncoders();
+                slideArm.resetSlideEncoders();
+                specimenArm.resetSpecimenEncoders();
+            }
         }
         waitForStart();
 
         slideArm.setWristToReady();
         follower.startTeleopDrive();
-        leftLight.setColor(IndicatorLight.COLOR_BEECON);
-        rightLight.setColor(IndicatorLight.COLOR_BEECON);
+
 
         criticalLoopTimer.reset();
         while (opModeIsActive()) {
@@ -162,31 +177,57 @@ public class TeleOpComp extends LinearOpMode {
                     slideWasExtend = false;
                     slideArm.stopSliding();
                 }
-                if (gamepad2.y && pivotTimer.milliseconds() > pivotTimerThreshold) {
-                    telemetry.addData("Status", "Pivoting Up");
+                if (gamepad2.y) {
+                    /*telemetry.addData("Status", "Pivoting Up");
                     pivotTimer.reset();
                     specimenArm.clawStateClose();
-                    slideArm.pivotUp();
+                    slideArm.pivotUp();*/
+                    slideWasAutoExtend = true;
+                    slideArm.scoreAuto();
+
                 }
-                if (gamepad2.x && pivotTimer.milliseconds() > pivotTimerThreshold) {
+                if (!gamepad2.y && slideWasAutoExtend){
+                    slideWasAutoExtend = false;
+                    slideArm.stopSliding();
+                }
+                if (gamepad2.x && !wasPivoting) {
                     telemetry.addData("Status", "Pivoting Down");
                     pivotTimer.reset();
                     specimenArm.clawStateClose();
                     slideArm.pivotDown();
+                    wasPivoting = true;
+                }
+                if (!gamepad2.x && wasPivoting){
+                    wasPivoting = false;
                 }
                 if (gamepad1.left_bumper && gamepad1.right_bumper) {
                     slideArm.makeLimp();
                     specimenArm.makeLimp();
                 }
                 if (gamepad2.right_bumper) {
+                    isIntaking = true;
+                    if (!slideArm.isWristGather() && !slideArm.isPivotUp()){
+                        slideArm.setWristToGather();
+                    }
                     slideArm.activateIntakeWithoutSensor();
+                    //leftLight.setColor(leftLight.COLOR_SAGE);
+                    //rightLight.setColor(rightLight.COLOR_SAGE);
                 }
                 if (gamepad2.left_bumper) {
+                    isIntaking = true;
+                    //leftLight.setColor(IndicatorLight.COLOR_BEECON);
                     slideArm.isKeeperBlock();
                     slideArm.activateIntakeWithSensor();
                 }
+
+                    //leftLight.setColor(leftLight.COLOR_SAGE);
+                    //rightLight.setColor(rightLight.COLOR_SAGE);
+
                 if (!gamepad2.right_bumper && !gamepad2.left_bumper) {
+                    isIntaking = false;
                     slideArm.stopIntake();
+                    //leftLight.setColor(leftLight.COLOR_BEECON);
+                    //rightLight.setColor(rightLight.COLOR_BEECON);
                 }
                 if (gamepad2.right_trigger > RIGHT_TRIGGER_THRESHOLD) {
                     slideArm.reverseIntakeWithoutSensor();
@@ -197,6 +238,16 @@ public class TeleOpComp extends LinearOpMode {
                 if (gamepad2.left_trigger > LEFT_TRIGGER_THRESHOLD && wristTimer.milliseconds() > wristTimerThreshold) {
                     wristTimer.reset();
                     slideArm.nextWristPosition();
+                    //leftLight.setColor(leftLight.COLOR_BEECON);
+                    //rightLight.setColor(rightLight.COLOR_BEECON);
+                }
+                if (gamepad1.a) {
+                    //TODO Use Normal hang hold
+                    slideArm.firstHangHold();
+                }
+                if (gamepad1.dpad_right){
+                    //TODO Use Normal Pivot
+                    slideArm.firstPivot();
                 }
                 if (gamepad1.b) {
                     follower.setPose(startPose);
@@ -257,14 +308,28 @@ public class TeleOpComp extends LinearOpMode {
                     leftLight.setColor(IndicatorLight.COLOR_RED);
                     rightLight.setColor(IndicatorLight.COLOR_SAGE);
                 }
+                if (motorsWereZeroed){
+                    rightLight.setColor(IndicatorLight.COLOR_VIOLET);
+                }
             }
             else if (slideArm.hangRequested){
                 leftLight.setColor(IndicatorLight.COLOR_VIOLET);
                 rightLight.setColor(IndicatorLight.COLOR_VIOLET);
-            }else{
+            }else if (isIntaking && slideArm.isWristGather()){
+                if (HIVE_COLOR == TeamColor.TEAM_BLUE) {
+                    leftLight.setColor(IndicatorLight.COLOR_BLUE);
+                    rightLight.setColor(IndicatorLight.COLOR_SAGE);
+                }
+                else if (HIVE_COLOR ==TeamColor.TEAM_RED) {
+                    leftLight.setColor(IndicatorLight.COLOR_RED);
+                    rightLight.setColor(IndicatorLight.COLOR_SAGE);
+                }
+            }
+            else{
                 leftLight.setColor(IndicatorLight.COLOR_BEECON);
                 rightLight.setColor(IndicatorLight.COLOR_BEECON);
             }
+
 
             slideArm.update();
             specimenArm.update();
@@ -367,6 +432,11 @@ public class TeleOpComp extends LinearOpMode {
         if (resetSpeciTimer.milliseconds() > resetSpeciTimerThreshold && speciResetNeeded) {
             specimenArm.resetSpecimenEncoders();
             speciResetNeeded = false;
+        }
+        if (gamepad1.start){
+            slideArm.zeroMotors();
+            specimenArm.zeroMotors();
+            motorsWereZeroed = true;
         }
     }
 }

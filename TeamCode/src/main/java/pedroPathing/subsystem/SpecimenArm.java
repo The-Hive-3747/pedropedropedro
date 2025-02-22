@@ -45,11 +45,11 @@ public class SpecimenArm {
     public static double R_SHOULDER_PRE_SCORE_POS = 0.35; //New variable for Idaho
     public static double SHOULDER_OFFSET = 0.021;
     public static double SPECIMENARM_MOVE_TIME = 1000.0;
-    public static double SPECIMENCLAW_OPEN_TIME = 200.0; //1000.0;
-    public static double SPECIMENARM_SCORE_TIME = 150.0;
+    public static double SPECIMENCLAW_OPEN_TIME = 140.0; //150.0;//200.0; //300.0; //200.0; //1000.0;
+    public static double SPECIMENARM_SCORE_TIME = 160.0; //150; //225.0; //250.0; //200.0; //150.0;
     public static double SPECIMENARM_COLLECT_THRESHOLD = 10.0;
     public static double SCORE_LATCH_TIME = 1.0;
-    public static double LATCH_SPEED = 0.8;
+    public static double LATCH_SPEED = 0.9;
     public static double MOVE_SPEED = 0.5;
     public static double COLLECT_SPEED =0.0;
     public static double R_SHOULDER_RESET_POWER = -0.2;
@@ -79,13 +79,20 @@ public class SpecimenArm {
             scoreRequested = false;
             //rightShoulder.setTargetPosition(R_SHOULDER_SCORE_POS);
             //rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             rightShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             rightShoulder.setPower(0);
         }
         if (shoulderPosition != ShoulderState.ENTER && rightShoulder.getCurrentPosition() +SPECIMENARM_COLLECT_THRESHOLD > R_SHOULDER_COLLECT_POS){
+            //rightShoulder.setPower(0);
+            rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            rightShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             rightShoulder.setPower(0);
             shoulderPosition = ShoulderState.COLLECT;
         }
+    }
+    public void zeroMotors(){
+        rightShoulder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
     }
     public void nextClawState() {
             if (clawState == ClawState.OPEN) {
@@ -94,7 +101,7 @@ public class SpecimenArm {
             else {
                 clawStateOpen();
                 //shoulderPosition = ShoulderState.COLLECT;
-                goToCollectArmState();
+                goToSpecimenCollect();
             }
     }
     public void clawStateOpen(){
@@ -170,6 +177,42 @@ public class SpecimenArm {
             return isDone;
         }
     }
+    public class ArmToLimp extends CommandBase {
+        public ArmToLimp() {
+        }
+        @Override
+        public void initialize(){
+        }
+        @Override
+        public void execute(){
+            rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            rightShoulder.setPower(0);
+            rightShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
+        @Override
+        public boolean isFinished(){
+            return true;
+        }
+    }
+    public class GoToAutoBar extends CommandBase {
+        public GoToAutoBar(){
+        }
+        @Override
+        public void initialize() {
+
+        }
+        @Override
+        public void execute(){
+            rightShoulder.setTargetPosition(175);
+            rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            rightShoulder.setPower(0.6);
+            rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        }
+        @Override
+        public boolean isFinished() {
+            return true;
+        }
+    }
 
     /*public void shoulderPowerPosition(){
         if (rightShoulder.getCurrentPosition() == R_SHOULDER_COLLECT_POS) {
@@ -189,6 +232,7 @@ public class SpecimenArm {
                 scoreRequested=true;
                 latchTime.reset();
                 shoulderPosition = ShoulderState.SCORE;
+                rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
                 rightShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                 //rightShoulder.setTargetPosition(R_SHOULDER_SCORE_POS);
                 //rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -214,6 +258,7 @@ public class SpecimenArm {
                 scoreRequested = false;
                 shoulderPosition = ShoulderState.COLLECT;
                 rightShoulder.setTargetPosition(R_SHOULDER_COLLECT_POS);
+                rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
                 rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
                 break;
@@ -222,12 +267,30 @@ public class SpecimenArm {
         }
     }
 
-    public void goToCollectArmState(){
+    public void goToSpecimenScore() {
+        rightShoulder.setPower(LATCH_SPEED);
+        scoreRequested=true;
+        latchTime.reset();
+        shoulderPosition = ShoulderState.SCORE;
+        rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    }
+
+    public void goToSpecimenEnter() {
+        rightShoulder.setPower(MOVE_SPEED);
+        scoreRequested = false;
+        shoulderPosition = ShoulderState.ENTER;
+        rightShoulder.setTargetPosition(R_SHOULDER_ENTER_POS);
+        rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+    }
+
+    public void goToSpecimenCollect() {
+        rightShoulder.setPower(MOVE_SPEED);
         scoreRequested = false;
         shoulderPosition = ShoulderState.COLLECT;
         rightShoulder.setTargetPosition(R_SHOULDER_COLLECT_POS);
+        rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        rightShoulder.setPower(MOVE_SPEED);
     }
 
     public ShoulderState getShoulderState(){
@@ -282,6 +345,119 @@ public class SpecimenArm {
                 rightShoulder.setPower(0);
             }
             isDone = true;
+        }
+
+        @Override
+        public boolean isFinished() {
+            return isDone;
+        }
+    }
+
+    public class SpecimenArmEnter extends CommandBase {
+        boolean isDone = false;
+
+        public SpecimenArmEnter() {
+        }
+
+        @Override
+        public void initialize() {
+            isDone = false;
+        }
+
+
+        @Override
+        public void execute() {
+            if (specimenArmDone) {
+                specimenArmDone = false;
+                specimenArmTime.reset();
+                goToSpecimenEnter();
+                isDone = false;
+                return;
+            }
+            if (specimenArmTime.milliseconds() < SPECIMENARM_SCORE_TIME) {
+                isDone = false;
+            }
+            specimenArmDone = true;
+            if (rightShoulder.getTargetPosition() == R_SHOULDER_COLLECT_POS) {
+                rightShoulder.setPower(0);
+            }
+            isDone = true;
+        }
+
+
+        @Override
+        public boolean isFinished() {
+            return isDone;
+        }
+    }
+
+    public class SpecimenArmCollect extends CommandBase {
+        boolean isDone = false;
+        boolean firstTime = true;
+
+        public SpecimenArmCollect(){
+        }
+
+        @Override
+        public void initialize() {
+            isDone = false;
+            firstTime = true;
+        }
+
+        @Override
+        public void execute() {
+            if (firstTime) {
+                firstTime = false;
+                specimenArmTime.reset();
+                goToSpecimenCollect();
+                isDone = false;
+                return;
+            }
+            if (!rightShoulder.isBusy()) {
+                isDone = true;
+            }
+            /*specimenArmDone = true;
+            if (rightShoulder.getTargetPosition() == R_SHOULDER_COLLECT_POS) {
+                rightShoulder.setPower(0);
+            }
+            isDone = true;*/
+        }
+
+        @Override
+        public boolean isFinished() {
+            return isDone;
+        }
+    }
+
+    public class SpecimenArmScore extends CommandBase {
+        boolean isDone = false;
+        boolean isFirstTime = true;
+
+        public SpecimenArmScore() {
+        }
+
+        @Override
+        public void initialize() {
+            isDone = false;
+        }
+
+        @Override
+        public void execute() {
+            if (isFirstTime) {
+                isFirstTime = false;
+                specimenArmTime.reset();
+                goToSpecimenScore();
+                isDone = false;
+                return;
+            }
+            if (specimenArmTime.milliseconds() > SPECIMENARM_SCORE_TIME) {
+                isDone = true;
+            }
+            /*specimenArmDone = true;
+            if (rightShoulder.getTargetPosition() == R_SHOULDER_COLLECT_POS) {
+                rightShoulder.setPower(0);
+            }
+            isDone = true;*/
         }
 
         @Override

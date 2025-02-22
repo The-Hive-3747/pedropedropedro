@@ -1,9 +1,6 @@
 package pedroPathing.subsystem;
 
-import androidx.annotation.NonNull;
-
 import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.arcrobotics.ftclib.command.CommandBase;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -17,6 +14,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import pedroPathing.TeleOpComp;
 import pedroPathing.TeleOpComp.SampleColor;
+import pedroPathing.examples.SampleAuto;
 
 /**
  * Extending the arm, active intake, pivoting the arm, rotating the wrist. This is the arm that
@@ -32,6 +30,7 @@ public class SlideArm {
     private Telemetry telemetry = null;
     private ElapsedTime intakeTime = new ElapsedTime();
     private ElapsedTime wristTime = new ElapsedTime();
+    private ElapsedTime autoPivotTime = new ElapsedTime();
     private static ElapsedTime autoIntakeTime = new ElapsedTime();
     private static ElapsedTime sleepTime = new ElapsedTime();
     private boolean autoIntakeStarted = false;
@@ -39,6 +38,7 @@ public class SlideArm {
     private boolean pivotUpRequested = false;
     private boolean pivotDownRequested = false;
     public boolean hangRequested = false;
+    public boolean firstHangRequested = false;
     private boolean doRelease = false;
     private boolean isHolding = false;
     private String servoStatus = "";
@@ -47,20 +47,23 @@ public class SlideArm {
     private PivotState pivotPosition = PivotState.DOWN;
     private WristState wristPosition = WristState.READY;
     //public static int PIVOT_ENTER_POSITION = 400; //200;
-    public static int PIVOT_UP_POSITION = 776;//1400; //1500; //1350; //1245; measured on old motor//1031 actual;//335
+    public static int PIVOT_UP_POSITION = 740;//776;//1400; //1500; //1350; //1245; measured on old motor//1031 actual;//335
     public static int PIVOT_DOWN_POSITION = 2;
-    public static int PIVOT_HANG_POSITION = 610; //490;//1145; //1140; //1284;
-    public static double PIVOT_POWER_UP = 0.6; //0.7;
+    public static int PIVOT_HANG_POSITION = 590; //610;//490;//1145; //1140; //1284;
+    public static int PIVOT_DOWN_WHILE_HANG = 466;
+    public static double PIVOT_POWER_UP = 0.7; //0.6; //0.7;
     public static double PIVOT_POWER_ENTER_UP = 0.6;
     public static double PIVOT_POWER_DOWN = 0.3; //0.7; //0.05;
-    public static double PIVOT_HANG_POWER = 0.6;
+    public static double PIVOT_HANG_POWER = 0.8;
+    public static int PIVOT_FIRST_HANG = 434;
     public static int PIVOT_UP_THRESHOLD = 590; //900;
     public static int PIVOT_TOLERANCE = 15;
+    public static int PIVOT_AUTO_TOLERANCE = 450; //200;
     public static double PIVOT_POWER_HOLD = 0.3; //0.2;
     public static double SLIDE_POWER_TEST = 0.1;
     public static double SLIDE_POWER = 0.9;//0.2;nex
     public static double SLIDE_POWER_RELEASE = 0.1;
-    public static double SLIDE_HOLD_POWER = 0.1;
+    public static double SLIDE_HOLD_POWER = 0.15;
     public static double SLIDE_POWER_HANG_HOLD = 0.8; //1.0; //0.6;
     public static int SLIDE_SLOW_STEP = 20;
     public static int SLIDE_STEP = 240;//60;
@@ -68,29 +71,32 @@ public class SlideArm {
     public static int SLIDE_RIGHT_HORIZ_LEGAL_LIMIT_TICKS = 844; //967; //1033; //1444; //1372; //1472;//2027;
     public static int SLIDE_LEFT_HEIGHT_SCORE_TICKS = 1936; //3568;
     public static int SLIDE_RIGHT_HEIGHT_SCORE_TICKS = 1936; //3569;
-    public static int SLIDE_LEFT_HANG_LIMIT = 2319;//3962;
-    public static int SLIDE_RIGHT_HANG_LIMIT = 2319;//3967;
-    public static int SLIDE_LEFT_HANG_HEIGHT = 984;//1450;old hang for 312 motor
-    public static int SLIDE_RIGHT_HANG_HEIGHT = 984;//1450;old hang for 312 motor
+    public static int SLIDE_LEFT_HANG_LIMIT = 2200;//2319;//3962;
+    public static int SLIDE_RIGHT_HANG_LIMIT = SLIDE_LEFT_HANG_LIMIT;//3967;
+    public static int SLIDE_LEFT_HANG_HEIGHT = 810;//1450;old hang for 312 motor
+    public static int SLIDE_RIGHT_HANG_HEIGHT = 810;//1450;old hang for 312 motor
+    public static int SLIDE_LEFT_FIRST_HANG_HEIGHT = 351;//369;
+    public static int SLIDE_RIGHT_FIRST_HANG_HEIGHT = 351;
     public static int SLIDE_LEFT_MIN_LIMIT_BUFFER = 50; //10;
     public static int SLIDE_BACK_MIN_LIMIT_BUFFER=10;
     public static int SLIDE_FRONT_STOP_TICKS = SLIDE_LEFT_HEIGHT_SCORE_TICKS;
     public static int SLIDE_BACK_STOP_TICKS = SLIDE_RIGHT_HEIGHT_SCORE_TICKS; //3967;
-    public static int SLIDE_FRONT_NO_DOWN_TICKS = 1000;
+    public static int SLIDE_NO_DOWN_TICKS = 1000;
     public static int SLIDE_TOLERANCE = 50;
+    public static int SLIDE_AUTO_TOLERANCE = -350;
     public static double INTAKE_DISTANCE_STOP_CM = 7.35;
-    public static double WRIST_STOW_POS = 1; //0.89; //0.0; old servo
+    public static double WRIST_STOW_POS = 1.0; //0.89; //0.0; old servo
     public static double WRIST_READY_POS = 0.28; //0.4; //0.33; //0.12; old servo
     public static double WRIST_GATHER_POS = 0.18; // 0.15;
-    public static double WRIST_SCORE_POS = 0.5; //1; // 0.7 0.5
+    public static double WRIST_SCORE_POS = 0.6; //0.5; //1; // 0.7 0.5
     public static double AUTO_INTAKE_THRESHOLD = 800.0;
-    public static double AUTO_INTAKE_PICKUP_THRESHOLD = 600.0;
-    public static double AUTO_INTAKE_DIAG_PICKUP_THRESHOLD = 710.0;
+    public static double AUTO_INTAKE_PICKUP_THRESHOLD = 450.0; //300.0; //650.0; //700.0; //640.0; //600.0; //550.0; //600.0;
+    public static double AUTO_INTAKE_DIAG_PICKUP_THRESHOLD = 800.0; //850.0; //900.0; //950.0; //1100.0; //810.0;
     public static double INTAKE_LEFT_POWER = -0.8;
     public static double INTAKE_RIGHT_POWER = -0.8;
     public static double INTAKE_LEFT_POWER_SCORE = 0.8;
     public static double INTAKE_RIGHT_POWER_SCORE = 0.8;
-    private static double SLIDE_POWER_SCORE_HOLD = 0.3;
+    private static double SLIDE_POWER_SCORE_HOLD = 0.3;//0.45;
     private static double LUMINANCE_RED = 0.299;
     private static double LUMINANCE_GREEN = 0.587;
     private static double LUMINANCE_BLUE = 0.114;
@@ -107,7 +113,7 @@ public class SlideArm {
     private CRServo rightIntake = null;
     private RevColorSensorV3 intakeColor = null;
     private ServoImplEx wrist = null;
-    private double afterDetectTimeMS = 180.0;
+    public static double AUTO_DETECT_TIME = 0.0;
 
 
 
@@ -189,8 +195,13 @@ public class SlideArm {
         }
 
     }
-
+    public void zeroMotors(){
+        leftSlideMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightSlideMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        pivotMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+    }
     public void pivotHang(){
+        firstHangRequested = true;
         hangRequested = true;
         pivotMotor.setTargetPosition(PIVOT_HANG_POSITION);
         pivotMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -202,6 +213,12 @@ public class SlideArm {
         if (!hangRequested){
             return;
         }
+        if (pivotMotor.getCurrentPosition() >= PIVOT_DOWN_WHILE_HANG){
+            pivotMotor.setTargetPosition(PIVOT_DOWN_WHILE_HANG);
+            pivotMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            pivotMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            pivotMotor.setPower(PIVOT_HANG_POWER);
+        }
         leftSlideMotor.setTargetPosition(SLIDE_LEFT_HANG_HEIGHT);
         rightSlideMotor.setTargetPosition(SLIDE_RIGHT_HANG_HEIGHT);
         leftSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -209,8 +226,19 @@ public class SlideArm {
         leftSlideMotor.setPower(SLIDE_POWER_HANG_HOLD);
         rightSlideMotor.setPower(SLIDE_POWER_HANG_HOLD);
     }
+    public void firstHangHold(){
+        if (!firstHangRequested){
+            return;
+        }
+        leftSlideMotor.setTargetPosition(SLIDE_LEFT_FIRST_HANG_HEIGHT);
+        rightSlideMotor.setTargetPosition(SLIDE_RIGHT_FIRST_HANG_HEIGHT);
+        leftSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftSlideMotor.setPower(SLIDE_POWER_HANG_HOLD);
+        rightSlideMotor.setPower(SLIDE_POWER_HANG_HOLD);
+    }
     public void hangRelease(){
-        if (!hangRequested){
+        if (!hangRequested && !firstHangRequested){
             return;
         }
         doRelease = true;
@@ -242,6 +270,7 @@ public class SlideArm {
 //            case GATHER:
 //            case UP:
                 hangRequested = false;
+                pivotPosition = PivotState.UP;
                 pivotMotor.setTargetPosition(PIVOT_UP_POSITION);
                 pivotMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 pivotMotor.setPower(PIVOT_POWER_UP);
@@ -276,10 +305,11 @@ public class SlideArm {
                 pivotDownRequested = true;
                 break;
             case GATHER:*/
-        if(getFrontSlideTicks()>SLIDE_FRONT_NO_DOWN_TICKS){
+        if(getFrontSlideTicks()> SLIDE_NO_DOWN_TICKS){
             return;
         }
                 hangRequested = false;
+                pivotPosition = PivotState.DOWN;
                 pivotMotor.setTargetPosition(PIVOT_DOWN_POSITION);
                 pivotMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 pivotMotor.setPower(PIVOT_POWER_DOWN);
@@ -288,6 +318,34 @@ public class SlideArm {
 //            default:
 //                telemetry.addData("Problem", "Pivot Down Invalid Position");
 //        }
+    }
+    public void scoreAuto() {
+        if (!isPivotUp()) {
+            pivotUp();
+            autoPivotTime.reset();
+        }
+        if (pivotMotor.getCurrentPosition() >= PIVOT_AUTO_TOLERANCE){
+            slideUpOneStep();
+        }
+
+        if (isSlideUpFull() && !isWristScore()){
+            wrist.setPosition(WRIST_SCORE_POS);
+        }
+    }
+    public boolean isWristScore(){
+        return wristPosition == WristState.SCORE;
+    }
+    public boolean isPivotUp(){
+        return pivotPosition == PivotState.UP;
+    }
+    public boolean isSlideUpFull(){
+        return leftSlideMotor.getCurrentPosition() >= SLIDE_LEFT_HEIGHT_SCORE_TICKS-SLIDE_TOLERANCE;
+    }
+    public void firstPivot(){
+        pivotMotor.setTargetPosition(PIVOT_FIRST_HANG);
+        pivotMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        pivotMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        pivotMotor.setPower(PIVOT_HANG_POWER);
     }
 
     public void makeLimp() {
@@ -380,7 +438,7 @@ public class SlideArm {
             leftSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             leftSlideMotor.setPower(SLIDE_POWER);
         }else{
-            leftSlideMotor.setTargetPosition(leftSlideMotor.getCurrentPosition());
+            leftSlideMotor.setTargetPosition(LIMIT); //leftSlideMotor.getCurrentPosition());
             leftSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             leftSlideMotor.setPower(SLIDE_POWER_SCORE_HOLD);
             isLeftDone = true;
@@ -390,7 +448,7 @@ public class SlideArm {
             rightSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             rightSlideMotor.setPower(SLIDE_POWER);
         }else{
-            rightSlideMotor.setTargetPosition(rightSlideMotor.getCurrentPosition());
+            rightSlideMotor.setTargetPosition(LIMIT); //rightSlideMotor.getCurrentPosition());
             rightSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             rightSlideMotor.setPower(SLIDE_POWER_SCORE_HOLD);
             isRightDone = true;
@@ -417,8 +475,29 @@ public class SlideArm {
         }
         */
     }
-
-
+    public boolean slideDownOneStepAuto() {
+        doRelease = false;
+        int LIMIT = SLIDE_LEFT_MIN_LIMIT_BUFFER;
+        boolean isLeftDone = false;
+        boolean isRightDone = false;
+        if (leftSlideMotor.getCurrentPosition() >= LIMIT + SLIDE_AUTO_TOLERANCE) {
+            leftSlideMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            leftSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            leftSlideMotor.setPower(-SLIDE_POWER);
+        } else {
+            leftSlideMotor.setPower(0);
+            isLeftDone = true;
+        }
+        if (rightSlideMotor.getCurrentPosition() >= LIMIT + SLIDE_AUTO_TOLERANCE) {
+            rightSlideMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rightSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            rightSlideMotor.setPower(-SLIDE_POWER);
+        } else {
+            rightSlideMotor.setPower(0);
+            isRightDone = true;
+        }
+        return !isLeftDone || !isRightDone;
+    }
     public boolean slideDownOneStep(){
         doRelease = false;
         int LIMIT = SLIDE_LEFT_MIN_LIMIT_BUFFER;
@@ -472,21 +551,33 @@ public class SlideArm {
 
 
     }
-    public void activateIntakeWithSensor(){
+    public boolean activateIntakeWithSensor(){
+        boolean isDone = false;
         if (intakeColor.getDistance(DistanceUnit.CM) > INTAKE_DISTANCE_STOP_CM){
+            if (!isWristGather()){
+                setWristToGather();
+
+            }
             leftIntake.setPower(INTAKE_LEFT_POWER);
             rightIntake.setPower(INTAKE_RIGHT_POWER);
             servoStatus = "Intake with Sensor Active";
             intakeTime.reset();
         } else {
-            if (intakeTime.milliseconds() > afterDetectTimeMS && isTeamColorBlock()) {
+            if (intakeTime.milliseconds() > AUTO_DETECT_TIME && isKeeperBlock()) {
                 leftIntake.setPower(0);
                 rightIntake.setPower(0);
                 servoStatus = "Inactive";
+                if (isWristGather()){
+                    setWristToScore();
+                }
+                isDone = true;
+                return isDone;
+                //slideDownOneStepAuto();
             } else {
                 servoStatus = "Intake sensed object and waiting";
             }
         }
+        return isDone;
     }
     public SampleColor detectColor(){
         if (LUMINANCE_BLUE_CB_MIN < getLuminancePb()){
@@ -548,6 +639,17 @@ public class SlideArm {
         wrist.setPosition(WRIST_READY_POS);
         wristPosition = WristState.READY;
     }
+    public void setWristToGather(){
+        wrist.setPosition(WRIST_GATHER_POS);
+        wristPosition = WristState.GATHER;
+    }
+    public void setWristToScore(){
+        wrist.setPosition(WRIST_SCORE_POS);
+        wristPosition = WristState.SCORE;
+    }
+    public boolean isWristGather(){
+        return wristPosition == WristState.GATHER;
+    }
 
     public void nextWristPosition(){
         switch(wristPosition) {
@@ -556,16 +658,16 @@ public class SlideArm {
                 wristPosition = WristState.READY;
                 break;*/
             case GATHER:
-                wrist.setPosition(WRIST_GATHER_POS);
+                wrist.setPosition(WRIST_SCORE_POS);
                 wristPosition = WristState.SCORE;
                 break;
             case SCORE:
-                wrist.setPosition(WRIST_SCORE_POS);
+                wrist.setPosition(WRIST_READY_POS);
                 wristPosition = WristState.READY;
                 break;
             case READY:
             default:
-                wrist.setPosition(WRIST_READY_POS);
+                wrist.setPosition(WRIST_GATHER_POS);
                 wristPosition = WristState.GATHER;
         }
     }
@@ -672,6 +774,7 @@ public class SlideArm {
         @Override
         public void execute() {
             //pivotSlideArmUp();
+            /*
             if (pivotMotor.getCurrentPosition() +PIVOT_TOLERANCE > PIVOT_UP_POSITION) {
                 telemetry.addData("PivotUp", "Completed");
                 telemetry.update();
@@ -686,15 +789,18 @@ public class SlideArm {
                 telemetry.addData("PivotUp", "Starting");
                 telemetry.update();
                 pivotUp();
+                isDone = true;
             }
             telemetry.addData("PivotUp", "Busy");
-            telemetry.update();
-            isDone = true;
+            telemetry.update();*/
+            pivotUp();
+
+
         }
 
         @Override
         public boolean isFinished() {
-            return isDone;
+            return (pivotMotor.getCurrentPosition() + PIVOT_TOLERANCE > PIVOT_UP_POSITION);
         }
     }
 
@@ -738,6 +844,7 @@ public class SlideArm {
 
         @Override
         public void execute() {
+            /*
             if (pivotMotor.getCurrentPosition() - PIVOT_TOLERANCE< PIVOT_DOWN_POSITION) {
                 telemetry.addData("PivotDown", "Completed");
                 telemetry.update();
@@ -753,12 +860,13 @@ public class SlideArm {
             }
             telemetry.addData("PivotDown", "Busy");
             telemetry.update();
-            isDone = true;
+            isDone = true;*/
+            pivotDown();
         }
 
         @Override
         public boolean isFinished() {
-            return isDone;
+            return (pivotMotor.getCurrentPosition() - PIVOT_TOLERANCE< PIVOT_DOWN_POSITION);
         }
     }
 
@@ -787,13 +895,30 @@ public class SlideArm {
     public Action pivotSlideArmDownToEnterAction() {
         return new PivotSlideArmDownToEnter();
     }*/
+
+    public class IntakeWithSensor extends CommandBase {
+        public IntakeWithSensor() {}
+
+        @Override
+        public void initialize() {}
+
+        @Override
+        public void execute() {}
+
+        @Override
+        public boolean isFinished() {
+            return activateIntakeWithSensor();
+        }
+    }
     public class IntakeScore extends CommandBase {
         boolean isDone = false;
         public IntakeScore() {}
 
+
         @Override
         public void initialize() {
             isDone = false;
+            autoIntakeStarted = false;
         }
 
         @Override
@@ -803,20 +928,43 @@ public class SlideArm {
                 autoIntakeStarted = true;
                 autoIntakeTime.reset();
                 activateIntakeWithoutSensor();
-                isDone = false;
+                //isDone = false;
             }
             else if (autoIntakeTime.milliseconds() < AUTO_INTAKE_THRESHOLD) {
                 activateIntakeWithoutSensor();
-                isDone = false;
+                //isDone = false;
             }
+            else if (autoIntakeTime.milliseconds() > AUTO_INTAKE_THRESHOLD) {
+                stopIntake();
+                isDone = true;
+            }
+            //stopIntake();
+
+        }
+
+        @Override
+        public boolean isFinished() {
+            return (isDone);
+        }
+    }
+
+    public class stopIntake extends CommandBase {
+        boolean isDone = false;
+        public stopIntake() {}
+        @Override
+        public void initialize() {
             autoIntakeStarted = false;
+        }
+
+        @Override
+        public void execute() {
             stopIntake();
             isDone = true;
         }
 
         @Override
         public boolean isFinished() {
-            return isDone;
+            return (isDone);
         }
     }
 
@@ -827,6 +975,7 @@ public class SlideArm {
         @Override
         public void initialize() {
             isDone = false;
+            autoIntakeStarted = false;
         }
 
         @Override
@@ -836,17 +985,49 @@ public class SlideArm {
                 autoIntakeStarted = true;
                 autoIntakeTime.reset();
                 activateIntakeWithoutSensor();
-                isDone = false;
+                //isDone = false;
             }
             else if (autoIntakeTime.milliseconds() < AUTO_INTAKE_PICKUP_THRESHOLD) {
                 activateIntakeWithoutSensor();
-                isDone = false;
+                //isDone = false;
             }
-            autoIntakeStarted = false;
-            stopIntake();
-            isDone = true;
+            else if (autoIntakeTime.milliseconds() > AUTO_INTAKE_PICKUP_THRESHOLD) {
+                stopIntake();
+                isDone = true;
+            }
+
         }
 
+        @Override
+        public boolean isFinished() {
+            return isDone;
+        }
+    }
+
+    public class IntakeReverse extends CommandBase {
+        boolean isDone = false;
+        public IntakeReverse() {}
+        @Override
+        public void initialize() {
+            isDone = false;
+            autoIntakeStarted = false;
+        }
+
+        @Override
+        public void execute() {
+            if (!autoIntakeStarted) {
+                autoIntakeStarted = true;
+                autoIntakeTime.reset();
+                reverseIntakeWithoutSensor();
+            }
+            else if (autoIntakeTime.milliseconds() < AUTO_INTAKE_PICKUP_THRESHOLD) {
+                reverseIntakeWithoutSensor();
+            }
+            else if (autoIntakeTime.milliseconds() > AUTO_INTAKE_PICKUP_THRESHOLD) {
+                stopIntake();
+                isDone = true;
+            }
+        }
         @Override
         public boolean isFinished() {
             return isDone;
@@ -868,15 +1049,16 @@ public class SlideArm {
                 autoIntakeStarted = true;
                 autoIntakeTime.reset();
                 activateIntakeWithoutSensor();
-                isDone = false;
+                //isDone = false;
             }
             else if (autoIntakeTime.milliseconds() < AUTO_INTAKE_DIAG_PICKUP_THRESHOLD) {
                 activateIntakeWithoutSensor();
-                isDone = false;
+                //isDone = false;
             }
-            autoIntakeStarted = false;
-            stopIntake();
-            isDone = true;
+            else if (autoIntakeTime.milliseconds() > AUTO_INTAKE_DIAG_PICKUP_THRESHOLD) {
+                stopIntake();
+                isDone = true;
+            }
         }
 
         @Override
