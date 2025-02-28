@@ -33,7 +33,7 @@ public class SampleAuto extends LinearOpMode {
     private SlideArm slideArm = null;
     private SpecimenArm specimenArm = null;
     private CommandScheduler scheduler = null;
-    private double RAW_DRIVE_TIME = 1000.0; //250.0;
+    private double RAW_DRIVE_TIME = 500.0; //250.0;
     private DcMotor leftFront = null;
     private DcMotor rightFront = null;
     private DcMotor leftBack = null;
