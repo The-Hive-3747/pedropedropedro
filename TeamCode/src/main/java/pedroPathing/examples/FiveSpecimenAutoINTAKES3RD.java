@@ -16,6 +16,7 @@ import com.pedropathing.pathgen.PathChain;
 import com.pedropathing.pathgen.Point;
 import com.pedropathing.util.Constants;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -27,7 +28,7 @@ import pedroPathing.subsystem.IndicatorLight;
 import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.SlideArm;
 import pedroPathing.subsystem.SpecimenArm;
-
+@Disabled
 @Autonomous(name = "FiveSpecimenAutoINTAKES3RD")
 public class FiveSpecimenAutoINTAKES3RD extends LinearOpMode {
     boolean teamChangeRequested = false;
@@ -457,8 +458,8 @@ public class FiveSpecimenAutoINTAKES3RD extends LinearOpMode {
     }
     @Override
     public void runOpMode() {
-        Constants.setConstants(FConstants.class, LConstants.class);
-        follower = new Follower(hardwareMap);
+        //Constants.setConstants(FConstants.class, LConstants.class);
+        follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
         follower.setStartingPose(startPose);
         slideArm = new SlideArm(hardwareMap, telemetry, true);
         specimenArm = new SpecimenArm(hardwareMap, telemetry, true);
@@ -472,34 +473,7 @@ public class FiveSpecimenAutoINTAKES3RD extends LinearOpMode {
         IndicatorLight rightLight = new IndicatorLight(hardwareMap, telemetry, "right_light");
         leftLight.setColor(IndicatorLight.COLOR_RED);
         rightLight.setColor(IndicatorLight.COLOR_RED);
-        while (!isStarted() && !isStopRequested()) {
-            if (gamepad1.dpad_right && !teamChangeRequested) {
-                teamChangeRequested = true;
-                if (HIVE_COLOR == TeleOpComp.TeamColor.TEAM_BLUE) {
-                    HIVE_COLOR = TeleOpComp.TeamColor.TEAM_RED;
-                    OpModeTransfer.autoColor = TeleOpComp.TeamColor.TEAM_RED;
-                } else {
-                    HIVE_COLOR = TeleOpComp.TeamColor.TEAM_BLUE;
-                    OpModeTransfer.autoColor = TeleOpComp.TeamColor.TEAM_BLUE;
-                }
-            }
-            if (!gamepad1.dpad_right && teamChangeRequested) {
-                teamChangeRequested = false;
-            }
-            if (HIVE_COLOR == TeleOpComp.TeamColor.TEAM_BLUE) {
-                leftLight.setColor(IndicatorLight.COLOR_BLUE);
-                rightLight.setColor(IndicatorLight.COLOR_BEECON);
-            } else {
-                leftLight.setColor(IndicatorLight.COLOR_RED);
-                rightLight.setColor(IndicatorLight.COLOR_BEECON);
-            }
-        }
-
-        waitForStart();
         scheduler = CommandScheduler.getInstance();
-        slideArm.slideBrakes();
-        leftLight.setColor(IndicatorLight.COLOR_BEECON);
-        rightLight.setColor(IndicatorLight.COLOR_BEECON);
         scheduler.schedule(
                 new SequentialCommandGroup(
                         slideArm.new wristStow(),
@@ -581,6 +555,34 @@ public class FiveSpecimenAutoINTAKES3RD extends LinearOpMode {
                         specimenArm.new SpecimenArmCollect()
                 )
        );
+        while (!isStarted() && !isStopRequested()) {
+            if (gamepad1.dpad_right && !teamChangeRequested) {
+                teamChangeRequested = true;
+                if (HIVE_COLOR == TeleOpComp.TeamColor.TEAM_BLUE) {
+                    HIVE_COLOR = TeleOpComp.TeamColor.TEAM_RED;
+                    OpModeTransfer.autoColor = TeleOpComp.TeamColor.TEAM_RED;
+                } else {
+                    HIVE_COLOR = TeleOpComp.TeamColor.TEAM_BLUE;
+                    OpModeTransfer.autoColor = TeleOpComp.TeamColor.TEAM_BLUE;
+                }
+            }
+            if (!gamepad1.dpad_right && teamChangeRequested) {
+                teamChangeRequested = false;
+            }
+            if (HIVE_COLOR == TeleOpComp.TeamColor.TEAM_BLUE) {
+                leftLight.setColor(IndicatorLight.COLOR_BLUE);
+                rightLight.setColor(IndicatorLight.COLOR_BEECON);
+            } else {
+                leftLight.setColor(IndicatorLight.COLOR_RED);
+                rightLight.setColor(IndicatorLight.COLOR_BEECON);
+            }
+        }
+
+        waitForStart();
+        slideArm.slideBrakes();
+        leftLight.setColor(IndicatorLight.COLOR_BEECON);
+        rightLight.setColor(IndicatorLight.COLOR_BEECON);
+
         while (opModeIsActive()) {
             follower.update();
             slideArm.update();
@@ -596,6 +598,6 @@ public class FiveSpecimenAutoINTAKES3RD extends LinearOpMode {
 
 
         }
-
+        OpModeTransfer.autoPose = follower.getPose();
     }
     }

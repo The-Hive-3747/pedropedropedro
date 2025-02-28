@@ -19,6 +19,8 @@ import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.SlideArm;
 import pedroPathing.subsystem.SpecimenArm;
 
+import java.util.Stack;
+
 @TeleOp(name="TeleOpComp")
 @Config
 public class TeleOpComp extends LinearOpMode {
@@ -32,6 +34,9 @@ public class TeleOpComp extends LinearOpMode {
     public static double strafeBiasBackward = 0.0;//-0.05;
     public static double HIGH_SPEED_THRESHOLD = 0.8;
     public static double LOW_SPEED_THRESHOLD = 0.1;
+    public static int RUMBLE_HANG_TIME_OUT = 90;
+    public static int RUMBLE_HANG_TIME2_OUT = 105;
+    public static Stack<Double> battery_checker = new Stack<>();
     private boolean slideWasRetract = false;
     private boolean slideWasExtend = false;
     private boolean clawWasPushed = false;
@@ -48,8 +53,18 @@ public class TeleOpComp extends LinearOpMode {
     private boolean wasPivoting = false;
     private boolean motorsWereZeroed = false;
     private boolean slideWasAutoExtend = false;
+    private boolean aWasPushed = false;
     private boolean isIntaking = false;
+    private boolean sitWasPushed = false;
+    private boolean rumble1Fired = false;
+    private boolean rumble2Fired = false;
+    private boolean pivotHangRequested = false;
+    private boolean intakeRequested = false;
+    private boolean wristChangeRequested = false;
+    private boolean isSlowToScore = false;
+    private boolean isOutaking = false;
     private SpecimenArm specimenArm = null;
+    private ElapsedTime rumbleHangTimer = new ElapsedTime();
     private ElapsedTime shoulderTimer = new ElapsedTime();
     private SlideArm slideArm = null;
     private ElapsedTime pivotTimer = new ElapsedTime();
@@ -58,6 +73,7 @@ public class TeleOpComp extends LinearOpMode {
     private ElapsedTime resetSlideTimer = new ElapsedTime();
     private ElapsedTime resetSpeciTimer = new ElapsedTime();
     private ElapsedTime criticalLoopTimer = new ElapsedTime();
+    private ElapsedTime slowDownTimer = new ElapsedTime();
     //private static Pose2d RESET_POSE = new Pose2d(0.0, 0.0, 0.0);
     private static double pivotTimerThreshold = 1000.0;
     private static double wristTimerThreshold = 750.0;
@@ -65,6 +81,7 @@ public class TeleOpComp extends LinearOpMode {
     private static double resetPivotTimerThreshold = 1000.0;
     private static double resetSlideTimerThreshold = 1000.0;
     private static double resetSpeciTimerThreshold = 1000.0;
+    private static double SPEED_TIME_SLOW_FOR_SCORE_THRESHOLD = SpecimenArm.SPECIMENARM_SCORE_TIME + 10.0;
     public static float LEFT_TRIGGER_THRESHOLD = 0.7f;
     public static float RIGHT_TRIGGER_THRESHOLD = 0.7f;
     private static double STICK_X_LEFT = -0.6;
@@ -72,6 +89,7 @@ public class TeleOpComp extends LinearOpMode {
     private static double NORMAL_SPEED = 0.7; //0.8;
     private static double LUDICROUS_SPEED = 1.0;
     private static double SLOW_SPEED = 0.5;
+    private static double SLOW_SCORE_SPEED = 0.2;
     private double maxLoopTime = 0.0;
     private Follower follower;
     private final Pose startPose = new Pose(0,0,0);
@@ -87,9 +105,9 @@ public class TeleOpComp extends LinearOpMode {
         rightLight.setColor(IndicatorLight.COLOR_RED);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
-        Constants.setConstants(FConstants.class, LConstants.class);
-        follower = new Follower(hardwareMap);
-        follower.setStartingPose(startPose);
+        //Constants.setConstants(FConstants.class, LConstants.class);
+        follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
+        follower.setStartingPose(OpModeTransfer.autoPose);
         //PinpointDrive drive = new PinpointDrive(hardwareMap, new Pose2d(0, 0, 0));
 
         specimenArm = new SpecimenArm(hardwareMap, telemetry, false);
@@ -114,6 +132,7 @@ public class TeleOpComp extends LinearOpMode {
         }
         waitForStart();
 
+        rumbleHangTimer.reset();
         slideArm.setWristToReady();
         follower.startTeleopDrive();
 
@@ -139,18 +158,50 @@ public class TeleOpComp extends LinearOpMode {
                     shoulderTimer.reset();
                     specimenArm.goToNextSpecimenState();
                 }*/
+                /*if (rumbleHangTimer.seconds() >= RUMBLE_HANG_TIME_OUT && !rumble1Fired) {
+                   rumble1Fired = true;
+                   gamepad1.rumble(300);
+                   gamepad2.rumble(300);
+                }else if (rumbleHangTimer.seconds() >= RUMBLE_HANG_TIME2_OUT && !rumble2Fired){
+                    rumble2Fired = true;
+                    gamepad1.rumble(300);
+                    gamepad2.rumble(300);
+                }*/
                 if (gamepad1.x && !shoulderWasPushed) {
+                    if (specimenArm.getShoulderState() == SpecimenArm.ShoulderState.ENTER){
+                        isSlowToScore = true;
+                        slowDownTimer.reset();
+                    }
                     specimenArm.goToNextSpecimenState();
                     shoulderWasPushed = true;
                 } else if (!gamepad1.x && shoulderWasPushed) {
                     shoulderWasPushed = false;
                 }
 
-                if (gamepad2.b) {
+                if (gamepad2.b && !pivotHangRequested) {
                     slideArm.pivotHang();
+                    specimenArm.clawStateClose();
+                    specimenArm.goToSpecimenCollect();
+                    slideArm.setWristToStow();
+                    pivotHangRequested = true;
                 }
-                if (gamepad2.a) {
+                if (!gamepad2.b && pivotHangRequested) {
+                    pivotHangRequested = false;
+                }
+                if (gamepad2.a && !aWasPushed) {
+                    aWasPushed = true;
                     slideArm.hangHold();
+                }
+                if (!gamepad2.a && aWasPushed){
+                    aWasPushed = false;
+                    //slideArm.stopHang();
+                }
+                if (gamepad2.dpad_up && !sitWasPushed){
+                    sitWasPushed = true;
+                    slideArm.sit();
+                }
+                if (!gamepad2.dpad_up && sitWasPushed){
+                    sitWasPushed = false;
                 }
                 if (gamepad1.y && !clawWasPushed) {
                     specimenArm.nextClawState();
@@ -204,43 +255,56 @@ public class TeleOpComp extends LinearOpMode {
                     slideArm.makeLimp();
                     specimenArm.makeLimp();
                 }
-                if (gamepad2.right_bumper) {
+                if (gamepad2.right_bumper && !intakeRequested) {
                     isIntaking = true;
                     if (!slideArm.isWristGather() && !slideArm.isPivotUp()){
                         slideArm.setWristToGather();
                     }
                     slideArm.activateIntakeWithoutSensor();
+                    intakeRequested = true;
                     //leftLight.setColor(leftLight.COLOR_SAGE);
                     //rightLight.setColor(rightLight.COLOR_SAGE);
                 }
-                if (gamepad2.left_bumper) {
+                /*if (gamepad2.left_bumper) {
                     isIntaking = true;
                     //leftLight.setColor(IndicatorLight.COLOR_BEECON);
                     slideArm.isKeeperBlock();
                     slideArm.activateIntakeWithSensor();
-                }
+                }*/
 
                     //leftLight.setColor(leftLight.COLOR_SAGE);
                     //rightLight.setColor(rightLight.COLOR_SAGE);
 
-                if (!gamepad2.right_bumper && !gamepad2.left_bumper) {
+                if (!gamepad2.right_bumper && !gamepad2.left_bumper && intakeRequested) {
                     isIntaking = false;
                     slideArm.stopIntake();
+                    intakeRequested = false;
                     //leftLight.setColor(leftLight.COLOR_BEECON);
                     //rightLight.setColor(rightLight.COLOR_BEECON);
                 }
-                if (gamepad2.right_trigger > RIGHT_TRIGGER_THRESHOLD) {
+                if (gamepad2.right_trigger > RIGHT_TRIGGER_THRESHOLD && !isOutaking) {
+                    isOutaking = true;
                     slideArm.reverseIntakeWithoutSensor();
                 }
+                if (gamepad2.right_trigger < RIGHT_TRIGGER_THRESHOLD && isOutaking) {
+                    isOutaking = false;
+                    slideArm.stopIntake();
+                }
+                /*
                 if (gamepad2.start) {
                     slideArm.slowMoveMotors(true);
-                }
-                if (gamepad2.left_trigger > LEFT_TRIGGER_THRESHOLD && wristTimer.milliseconds() > wristTimerThreshold) {
+                }*/
+                if (gamepad2.left_trigger > LEFT_TRIGGER_THRESHOLD && !wristChangeRequested) {//wristTimer.milliseconds() > wristTimerThreshold) {
                     wristTimer.reset();
                     slideArm.nextWristPosition();
+                    wristChangeRequested = true;
                     //leftLight.setColor(leftLight.COLOR_BEECON);
                     //rightLight.setColor(rightLight.COLOR_BEECON);
                 }
+                if (gamepad2.left_trigger <= LEFT_TRIGGER_THRESHOLD && wristChangeRequested) {
+                    wristChangeRequested = false;
+                }
+                /*
                 if (gamepad1.a) {
                     //TODO Use Normal hang hold
                     slideArm.firstHangHold();
@@ -249,6 +313,7 @@ public class TeleOpComp extends LinearOpMode {
                     //TODO Use Normal Pivot
                     slideArm.firstPivot();
                 }
+                */
                 if (gamepad1.b) {
                     follower.setPose(startPose);
                 }
@@ -260,8 +325,12 @@ public class TeleOpComp extends LinearOpMode {
                 configWasRequested = false;
             }
             speedMultiplier = NORMAL_SPEED;
-            if (gamepad1.left_bumper){
+            if (isSlowToScore && slowDownTimer.milliseconds() < SPEED_TIME_SLOW_FOR_SCORE_THRESHOLD){
+                speedMultiplier = SLOW_SCORE_SPEED;
+            }else if (gamepad1.left_bumper){
                 speedMultiplier = SLOW_SPEED;
+            }else if (isSlowToScore && slowDownTimer.milliseconds() > SPEED_TIME_SLOW_FOR_SCORE_THRESHOLD){
+                isSlowToScore = false;
             }
 
 
@@ -303,10 +372,10 @@ public class TeleOpComp extends LinearOpMode {
             if (configModeActivated){
                 if (HIVE_COLOR == TeamColor.TEAM_BLUE){
                     leftLight.setColor(IndicatorLight.COLOR_BLUE);
-                    rightLight.setColor(IndicatorLight.COLOR_SAGE);
+                    rightLight.setColor(IndicatorLight.COLOR_ORANGE);
                 }else{
                     leftLight.setColor(IndicatorLight.COLOR_RED);
-                    rightLight.setColor(IndicatorLight.COLOR_SAGE);
+                    rightLight.setColor(IndicatorLight.COLOR_ORANGE);
                 }
                 if (motorsWereZeroed){
                     rightLight.setColor(IndicatorLight.COLOR_VIOLET);
@@ -341,8 +410,8 @@ public class TeleOpComp extends LinearOpMode {
             telemetry.addData("Critical Loop MS", criticalLoopTimer.milliseconds());
             criticalLoopTimer.reset();
             telemetry.addData("Max Critical Loop Time", maxLoopTime);
-            telemetry.addData("Intake Distance", slideArm.getIntakeDistaceCM());
-            telemetry.addData("Intake Color:", slideArm.detectColor());
+            //telemetry.addData("Intake Distance", slideArm.getIntakeDistaceCM());
+            //telemetry.addData("Intake Color:", slideArm.detectColor());
             telemetry.addData("x", follower.getPose().getX());
             telemetry.addData("y", follower.getPose().getY());
             telemetry.addData("heading (deg)", Math.toDegrees(follower.getPose().getHeading()));
@@ -351,7 +420,7 @@ public class TeleOpComp extends LinearOpMode {
             telemetry.addData("Wrist Status", slideArm.getWristPosition());
             slideArm.addSlideTelemetry();
             telemetry.addData("Right Shoulder Ticks", specimenArm.rightShoulder.getCurrentPosition());
-            telemetry.addData("Hit gamepad1.X to move shoulder","");
+            /*telemetry.addData("Hit gamepad1.X to move shoulder","");
             telemetry.addData("Hit gamepad1.Y to move claw","");
             telemetry.addData("Hit gamepad2.B to pivot for hang","");
             telemetry.addData("Hit gamepad2.A to hang from slides","");
@@ -370,22 +439,27 @@ public class TeleOpComp extends LinearOpMode {
             telemetry.addData("Hit gamepad1.back to slowly come down from hang.", "");
             telemetry.addData("Hit gamepad1 dpad UP to go into CONFIGURE", "");
             telemetry.addData("--------------------------------CONFIG MODE", "");
-            telemetry.addData("Hit gamepad 1 dpad RIGHT to change TEAM color", "");
+            telemetry.addData("Hit gamepad 1 dpad RIGHT to change TEAM color", "");*/
             telemetry.update();
 
-            TelemetryPacket packet = new TelemetryPacket();
-            packet.fieldOverlay().setStroke("#3F51B5");
+            // TODO: IF FTC DASHBOARD NEEDED: UNCOMMENT TELEMETRYPACKET & FTCDASHBOARD
+
+            //TelemetryPacket packet = new TelemetryPacket();
+
+            //packet.fieldOverlay().setStroke("#3F51B5");
             //Drawing.drawRobot(packet.fieldOverlay(), drive.pose);
-            FtcDashboard.getInstance().sendTelemetryPacket(packet);
+
+            //FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }
     }
+
     public void runConfigMode(){
-        if (gamepad2.dpad_down) {
+        if (gamepad2.b) {
             pivotResetWasRequested = true;
             slideArm.pivotDownWithoutLimits();
             resetPivotTimer.reset();
         }
-        if (!gamepad2.dpad_down && pivotResetWasRequested) {
+        if (!gamepad2.b && pivotResetWasRequested) {
             pivotResetWasRequested = false;
             pivotResetNeeded = true;
             slideArm.resetPivotEncoders();
@@ -411,12 +485,12 @@ public class TeleOpComp extends LinearOpMode {
         if (!gamepad1.dpad_right && teamChangeRequested){
             teamChangeRequested = false;
         }
-        if (gamepad2.x){
+        if (gamepad1.x){
             resetSpeciWasRequested = true;
             specimenArm.resetSpecimenWithoutLimits();
             resetSpeciTimer.reset();
         }
-        if (!gamepad2.x && resetSpeciWasRequested) {
+        if (!gamepad1.x && resetSpeciWasRequested) {
             resetSpeciWasRequested = false;
             speciResetNeeded = true;
             specimenArm.resetSpecimenEncoders();

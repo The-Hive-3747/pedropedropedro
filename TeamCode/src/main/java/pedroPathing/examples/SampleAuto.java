@@ -1,6 +1,7 @@
 package pedroPathing.examples;
 
 import com.pedropathing.follower.Follower;
+import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.util.Constants;
 
 import pedroPathing.TeleOpComp;
@@ -19,6 +20,8 @@ import com.pedropathing.pathgen.Point;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.arcrobotics.ftclib.command.*;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import pedroPathing.subsystem.SpecimenArm;
 
@@ -30,6 +33,12 @@ public class SampleAuto extends LinearOpMode {
     private SlideArm slideArm = null;
     private SpecimenArm specimenArm = null;
     private CommandScheduler scheduler = null;
+    private double RAW_DRIVE_TIME = 1000.0; //250.0;
+    private DcMotor leftFront = null;
+    private DcMotor rightFront = null;
+    private DcMotor leftBack = null;
+    private DcMotor rightBack = null;
+    private double DRIVE_POWER = 0.3;
     public static Pose startPose = new Pose(8,111, Math.toRadians(0));
 
     private Follower follower;
@@ -46,35 +55,35 @@ public class SampleAuto extends LinearOpMode {
         return new PathBuilder()
                 .addPath(new BezierLine( // after place, goes to first sample
                         new Point(8, 125, Point.CARTESIAN),
-                        new Point(25.2, 120.5, Point.CARTESIAN)))
+                        new Point(24.2, 121.5, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(0))
                 .build();
     }
     public static PathChain score1Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(25.2, 120.5, Point.CARTESIAN),
-                        new Point(11.4, 127.5, Point.CARTESIAN)
+                        new Point(24.2, 121.5, Point.CARTESIAN),
+                        new Point(12.4, 129.7, Point.CARTESIAN)
                 ))
-                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-45))
+                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-40))
                 .build();
 
     }
     public static PathChain intake2Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(11.4, 127.5, Point.CARTESIAN),
-                        new Point(24.25, 129.5, Point.CARTESIAN)
+                        new Point(12.4, 129.7, Point.CARTESIAN),
+                        new Point(24.75, 130.0, Point.CARTESIAN)
                 ))
-                .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(0))
+                .setLinearHeadingInterpolation(Math.toRadians(-40), Math.toRadians(0))
                 .build();
     }
 
     public static PathChain score2Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(24.25, 129.5, Point.CARTESIAN),
-                        new Point(16.5, 130.5, Point.CARTESIAN)
+                        new Point(24.75, 130.0, Point.CARTESIAN),
+                        new Point(12.6, 130.6, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-45))
                 .build();
@@ -82,17 +91,18 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain intake3Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(16.5, 130.5, Point.CARTESIAN),
-                        new Point(33.3, 134, Point.CARTESIAN)
+                        new Point(12.6, 130.6, Point.CARTESIAN),
+                        new Point(31.8, 134, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(40))
                 .build();
     }
     public static PathChain score3Sample() {
         return new PathBuilder()
-                .addPath(new BezierLine(
-                        new Point(33.3, 134, Point.CARTESIAN),
-                        new Point(11.2, 131.7, Point.CARTESIAN)
+                .addPath(new BezierCurve(
+                        new Point(31.8, 134, Point.CARTESIAN),
+                        new Point (33,110, Point.CARTESIAN),
+                        new Point(8.7, 129.0, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(40), Math.toRadians(-45))
                 .build();
@@ -100,12 +110,12 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain fixRotation() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(11.2, 131.7, Point.CARTESIAN),
-                        new Point(50, 112, Point.CARTESIAN)
+                        new Point(8.7, 129.0, Point.CARTESIAN),
+                        new Point(50, 120, Point.CARTESIAN)
                 ))
                 .addPath(new BezierLine(
-                        new Point(50,112, Point.CARTESIAN),
-                        new Point(56,103, Point.CARTESIAN)
+                        new Point(50,120, Point.CARTESIAN),
+                        new Point(51,108, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(-90))
                 .build();
@@ -119,6 +129,46 @@ public class SampleAuto extends LinearOpMode {
     // TODO: intake and place last sample
     // TODO: fix pivot to be smart
 
+    public class RawDriveForward extends CommandBase {
+        ElapsedTime driveTime = null;
+        boolean firstTime = true;
+        boolean isDone = false;
+        public RawDriveForward() {}
+        @Override
+        public void initialize() {
+            driveTime = new ElapsedTime();
+            firstTime= true;
+            isDone = false;
+        }
+        @Override
+        public void execute() {
+            pathState = "rawDrive";
+            if (firstTime) {
+                driveTime.reset();
+                firstTime = false;
+                follower.breakFollowing();
+                leftBack.setPower(DRIVE_POWER);
+                rightBack.setPower(DRIVE_POWER);
+                leftFront.setPower(DRIVE_POWER);
+                rightFront.setPower(DRIVE_POWER);
+                leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            }
+            if (driveTime.milliseconds()>RAW_DRIVE_TIME) {
+                leftBack.setPower(0);
+                rightBack.setPower(0);
+                leftFront.setPower(0);
+                rightFront.setPower(0);
+                isDone=true;
+            }
+        }
+        @Override
+        public boolean isFinished() {
+            return isDone;
+        }
+    }
 
     public class FollowPreload extends CommandBase {
         boolean followerStarted = false;
@@ -172,7 +222,7 @@ public class SampleAuto extends LinearOpMode {
         @Override
         public void execute() {
             if (!followerStarted) {
-                follower.followPath(score1Sample(), 0.8, false);
+                follower.followPath(score1Sample(), 0.6, false);
                 pathState = "score 2nd sample";
                 followerStarted = true;
             }
@@ -213,7 +263,7 @@ public class SampleAuto extends LinearOpMode {
         @Override
         public void execute() {
             if (!followerStarted) {
-                follower.followPath(score2Sample(), 0.9,false);
+                follower.followPath(score2Sample(), 0.8, false);
                 pathState = "score 3rd sample";
                 followerStarted = true;
             }
@@ -286,17 +336,114 @@ public class SampleAuto extends LinearOpMode {
     }
     @Override
     public void runOpMode() {
-        Constants.setConstants(FConstants.class, LConstants.class);
-        follower = new Follower(hardwareMap);
+        //Constants.setConstants(FConstants.class, LConstants.class);
+        follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
         follower.setStartingPose(startPose);
         slideArm = new SlideArm(hardwareMap, telemetry, true);
         specimenArm = new SpecimenArm(hardwareMap, telemetry, true);
+        leftFront = hardwareMap.get(DcMotor.class, FollowerConstants.leftFrontMotorName);
+        rightFront = hardwareMap.get(DcMotor.class,FollowerConstants.rightFrontMotorName);
+        leftBack = hardwareMap.get(DcMotor.class,FollowerConstants.leftRearMotorName);
+        rightBack = hardwareMap.get(DcMotor.class,FollowerConstants.rightRearMotorName);
 
 
         IndicatorLight leftLight = new IndicatorLight(hardwareMap, telemetry, "left_light");
         IndicatorLight rightLight = new IndicatorLight(hardwareMap, telemetry, "right_light");
         leftLight.setColor(IndicatorLight.COLOR_RED);
         rightLight.setColor(IndicatorLight.COLOR_RED);
+
+
+        //waitForStart();
+        scheduler = CommandScheduler.getInstance();
+        //slideArm.slideBrakes();
+        //leftLight.setColor(IndicatorLight.COLOR_BEECON);
+        //rightLight.setColor(IndicatorLight.COLOR_BEECON);
+        scheduler.schedule(
+                new SequentialCommandGroup(
+                        new ParallelCommandGroup(
+                                this.new FollowPreload(),
+                                slideArm.new PivotSlideArmUp(),
+                                slideArm.new wristReady()
+                                ),
+                        slideArm.new ExtendSlideArm(),
+                        slideArm.new wristScore(),
+                        //new WaitCommand(500),
+                        slideArm.new IntakeScore(),
+                        slideArm.new stopIntake(),
+                        slideArm.new wristReady(),
+                        slideArm.new RetractSlideArm(),
+                        new ParallelCommandGroup(
+                                slideArm.new PivotSlideArmDown(),
+                                this.new FollowIntake1Sample()
+                        ),
+                        slideArm.new wristGather(),
+                        slideArm.new IntakeSample().withTimeout((long) SlideArm.AUTO_FIRST_INTAKE_PICKUP_THRESHOLD),
+                        slideArm.new stopIntake(),
+                        new ParallelCommandGroup(
+                                this.new FollowScore1Sample(),
+                                slideArm.new wristReady(),
+                                slideArm.new PivotSlideArmUp()
+                        ),
+                        slideArm.new ExtendSlideArm(),
+                        slideArm.new wristScore(),
+                        new WaitCommand(250),
+                        slideArm.new IntakeScore(),
+                        //new WaitCommand(500),
+                        slideArm.new stopIntake(),
+                        slideArm.new wristReady(),
+                        slideArm.new RetractSlideArm(),
+                        new ParallelCommandGroup(
+                                slideArm.new PivotSlideArmDown(),
+                                this.new FollowIntake2Sample()
+                        ),
+                        slideArm.new wristGather(),
+                        slideArm.new IntakeSample().withTimeout((long) SlideArm.AUTO_INTAKE_PICKUP_THRESHOLD),
+                        //new WaitCommand(1000),
+                        slideArm.new stopIntake(),
+                        new ParallelCommandGroup(
+                                this.new FollowScore2Sample(),
+                                slideArm.new wristReady(),
+                                slideArm.new PivotSlideArmUp()
+                        ),
+                        slideArm.new ExtendSlideArm(),
+                        slideArm.new wristScore(),
+                        new WaitCommand(250),
+                        slideArm.new IntakeScore(),
+                        slideArm.new stopIntake(),
+                        slideArm.new wristReady(),
+                        slideArm.new RetractSlideArm(),
+                        new ParallelCommandGroup(
+                                slideArm.new PivotSlideArmDown(),
+                                this.new FollowIntake3Sample()
+                        ),
+                        slideArm.new wristGather(),
+                        slideArm.new IntakeSample().withTimeout((long) SlideArm.AUTO_INTAKE_DIAG_PICKUP_THRESHOLD+ 50),
+                        slideArm.new stopIntake(),
+                        new ParallelCommandGroup(
+                                this.new FollowScore3Sample(),
+                                slideArm.new wristReady(),
+                                slideArm.new PivotSlideArmUp()
+                        ),
+                        slideArm.new ExtendSlideArm(),
+                        slideArm.new wristScore(),
+                        new WaitCommand(250),
+                        slideArm.new IntakeScore(),
+                        //new WaitCommand(500),
+                        slideArm.new stopIntake(),
+                        slideArm.new wristReady(),
+                        slideArm.new RetractSlideArm(),
+                        new ParallelCommandGroup(
+                                slideArm.new PivotSlideArmDown(),
+                                specimenArm.new GoToAutoBar(),
+                                slideArm.new wristReady(),
+                                this.new FollowFixRotation()
+                        ),
+                        this.new RawDriveForward(),
+                        specimenArm.new ArmToLimp(),
+                        new WaitCommand(2000)
+                        //this.new FollowFixRotation()
+                )
+        );
         while (!isStarted() && !isStopRequested()) {
             if (gamepad1.dpad_right && !teamChangeRequested) {
                 teamChangeRequested = true;
@@ -319,100 +466,14 @@ public class SampleAuto extends LinearOpMode {
                 rightLight.setColor(IndicatorLight.COLOR_BEECON);
             }
         }
-
         waitForStart();
-        scheduler = CommandScheduler.getInstance();
-        slideArm.slideBrakes();
         leftLight.setColor(IndicatorLight.COLOR_BEECON);
         rightLight.setColor(IndicatorLight.COLOR_BEECON);
-        scheduler.schedule(
-                new SequentialCommandGroup(
-                        new ParallelCommandGroup(
-                                this.new FollowPreload(),
-                                slideArm.new PivotSlideArmUp(),
-                                slideArm.new wristReady()
-                                ),
-                        slideArm.new ExtendSlideArm(),
-                        slideArm.new wristScore(),
-                        //new WaitCommand(500),
-                        slideArm.new IntakeScore(),
-                        slideArm.new stopIntake(),
-                        slideArm.new wristReady(),
-                        slideArm.new RetractSlideArm(),
-                        new ParallelCommandGroup(
-                                slideArm.new PivotSlideArmDown(),
-                                this.new FollowIntake1Sample()
-                        ),
-                        slideArm.new wristGather(),
-                        slideArm.new IntakeWithSensor().withTimeout((long) SlideArm.AUTO_INTAKE_PICKUP_THRESHOLD),
-                        slideArm.new stopIntake(),
-                        new ParallelCommandGroup(
-                                this.new FollowScore1Sample(),
-                                slideArm.new wristReady(),
-                                slideArm.new PivotSlideArmUp()
-                        ),
-                        slideArm.new ExtendSlideArm(),
-                        slideArm.new wristScore(),
-                        //new WaitCommand(500),
-                        slideArm.new IntakeScore(),
-                        //new WaitCommand(500),
-                        slideArm.new stopIntake(),
-                        slideArm.new wristReady(),
-                        slideArm.new RetractSlideArm(),
-                        new ParallelCommandGroup(
-                                slideArm.new PivotSlideArmDown(),
-                                this.new FollowIntake2Sample()
-                        ),
-                        slideArm.new wristGather(),
-                        slideArm.new IntakeWithSensor().withTimeout((long) SlideArm.AUTO_INTAKE_PICKUP_THRESHOLD),
-                        //new WaitCommand(1000),
-                        slideArm.new stopIntake(),
-                        new ParallelCommandGroup(
-                                this.new FollowScore2Sample(),
-                                slideArm.new wristReady(),
-                                slideArm.new PivotSlideArmUp()
-                        ),
-                        slideArm.new ExtendSlideArm(),
-                        slideArm.new wristScore(),
-                        //new WaitCommand(500),
-                        slideArm.new IntakeScore(),
-                        slideArm.new stopIntake(),
-                        slideArm.new wristReady(),
-                        slideArm.new RetractSlideArm(),
-                        new ParallelCommandGroup(
-                                slideArm.new PivotSlideArmDown(),
-                                this.new FollowIntake3Sample()
-                        ),
-                        slideArm.new wristGather(),
-                        slideArm.new IntakeWithSensor().withTimeout((long) SlideArm.AUTO_INTAKE_DIAG_PICKUP_THRESHOLD),
-                        slideArm.new stopIntake(),
-                        new ParallelCommandGroup(
-                                this.new FollowScore3Sample(),
-                                slideArm.new wristReady(),
-                                slideArm.new PivotSlideArmUp()
-                        ),
-                        slideArm.new ExtendSlideArm(),
-                        slideArm.new wristScore(),
-                        //new WaitCommand(500),
-                        slideArm.new IntakeScore(),
-                        //new WaitCommand(500),
-                        slideArm.new stopIntake(),
-                        slideArm.new wristReady(),
-                        slideArm.new RetractSlideArm(),
-                        new ParallelCommandGroup(
-                                slideArm.new PivotSlideArmDown(),
-                                specimenArm.new GoToAutoBar(),
-                                slideArm.new wristReady(),
-                                this.new FollowFixRotation()
-                        ),
-                        specimenArm.new ArmToLimp()
-                        //this.new FollowFixRotation()
-                )
-        );
+        slideArm.slideBrakes();
         while (opModeIsActive()) {
             follower.update();
             slideArm.update();
-            specimenArm.update();
+            //specimenArm.update();
 
             // Feedback to Driver Hub
             telemetry.addData("~~path state~~",  pathState);
@@ -425,6 +486,7 @@ public class SampleAuto extends LinearOpMode {
 
 
         }
+        OpModeTransfer.autoPose = follower.getPose();
 
     }
 }

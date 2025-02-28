@@ -13,7 +13,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.arcrobotics.ftclib.*;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-//@Disabled
+@Disabled
 @Autonomous(name="test file")
 public class autoTest extends LinearOpMode {
     private SpecimenArm specimenArm = null;
@@ -26,8 +26,8 @@ public class autoTest extends LinearOpMode {
         waitForStart();
         scheduler = CommandScheduler.getInstance();
         scheduler.schedule(
-                slideArm.new wristGather(),
-                slideArm.new IntakeWithSensor()
+                slideArm.new wristGather()
+                //slideArm.new IntakeWithSensor()
         );
         while (opModeIsActive()) {
             scheduler.run();

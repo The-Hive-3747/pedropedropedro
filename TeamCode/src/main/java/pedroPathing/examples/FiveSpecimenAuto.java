@@ -25,9 +25,10 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import pedroPathing.subsystem.SpecimenArm;
 
-@Autonomous(name = "FiveSpecimenAuto")
+@Autonomous(name = "Five Specimen Auto")
 public class FiveSpecimenAuto extends LinearOpMode {
     boolean teamChangeRequested = false;
+    private ElapsedTime criticalLoop= new ElapsedTime();
     TeleOpComp.TeamColor HIVE_COLOR = TeleOpComp.TeamColor.TEAM_BLUE;
     public String pathState = null;
     private SlideArm slideArm = null;
@@ -77,7 +78,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierCurve( // pushes third sample
                         new Point(48, 14, Point.CARTESIAN), // change this y if the robot is hitting the wall at the beginning of the path
-                        new Point(70, 0, Point.CARTESIAN), // change this y if the robot is hitting the wall at the middle of the path
+                        new Point(70, 0.6, Point.CARTESIAN), // change this y if the robot is hitting the wall at the middle of the path
                         new Point(20, 2, Point.CARTESIAN))) // change this y if the robot is hitting the wall at the end of the path
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine(
@@ -117,9 +118,9 @@ public class FiveSpecimenAuto extends LinearOpMode {
     public static PathChain score2Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(13, 39, Point.CARTESIAN),
+                        new Point(13, 42, Point.CARTESIAN),
                         new Point(15, 60, Point.CARTESIAN),
-                        new Point(38, 69.5, Point.CARTESIAN)
+                        new Point(38.3, 70.25, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
@@ -127,7 +128,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
     public static PathChain pickup3Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(38, 69.5, Point.CARTESIAN),
+                        new Point(38.3, 70.25, Point.CARTESIAN),
                         new Point(31, 73, Point.CARTESIAN),
                         new Point(20, 45, Point.CARTESIAN)
                 ))
@@ -144,7 +145,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 .addPath(new BezierCurve(
                         new Point(14, 42, Point.CARTESIAN),
                         new Point(15, 70, Point.CARTESIAN),
-                        new Point(38, 69, Point.CARTESIAN)
+                        new Point(38, 69.75, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
@@ -152,14 +153,14 @@ public class FiveSpecimenAuto extends LinearOpMode {
     public static PathChain pickup4Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(38, 69, Point.CARTESIAN),
+                        new Point(38, 69.75, Point.CARTESIAN),
                         new Point(31, 73, Point.CARTESIAN),
                         new Point(20, 45, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine(
                         new Point(20, 45, Point.CARTESIAN),
-                        new Point(14, 41, Point.CARTESIAN)
+                        new Point(14, 42, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
@@ -167,7 +168,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
     public static PathChain score4Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(14, 41, Point.CARTESIAN),
+                        new Point(14, 42, Point.CARTESIAN),
                         new Point(15, 77, Point.CARTESIAN),
                         new Point(38, 67.5, Point.CARTESIAN)
                 ))
@@ -227,7 +228,6 @@ public class FiveSpecimenAuto extends LinearOpMode {
             if (!followerStarted) {
                 follower.followPath(preload());
                 pathState = "score preload";
-
                 followerStarted = true;
             }
         }
@@ -400,8 +400,8 @@ public class FiveSpecimenAuto extends LinearOpMode {
     }
     @Override
     public void runOpMode() {
-        Constants.setConstants(FConstants.class, LConstants.class);
-        follower = new Follower(hardwareMap);
+        //Constants.setConstants(FConstants.class, LConstants.class);
+        follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
         follower.setStartingPose(startPose);
         slideArm = new SlideArm(hardwareMap, telemetry, true);
         specimenArm = new SpecimenArm(hardwareMap, telemetry, true);
@@ -414,6 +414,76 @@ public class FiveSpecimenAuto extends LinearOpMode {
         IndicatorLight rightLight = new IndicatorLight(hardwareMap, telemetry, "right_light");
         leftLight.setColor(IndicatorLight.COLOR_RED);
         rightLight.setColor(IndicatorLight.COLOR_RED);
+        scheduler = CommandScheduler.getInstance();
+
+        scheduler.schedule(
+                new SequentialCommandGroup(
+                        new ParallelCommandGroup(
+                                slideArm.new wristStow(),
+                                specimenArm.new doAutoClawStateClose(),
+                                specimenArm.new SpecimenArmEnter(),
+                                this.new FollowPreload() // SCORE PRELOAD
+                        ),
+                        this.new RawDriveForward(),
+                        specimenArm.new SpecimenArmScore(),
+                        specimenArm.new doAutoClawStateOpen(),
+                        specimenArm.new SpecimenArmCollect()
+                                .alongWith(
+                                        this.new FollowPushSamples()), // PUSH SAMPLES
+
+                        specimenArm.new doAutoClawStateClose(),
+
+                        specimenArm.new SpecimenArmEnter()
+                                .alongWith(
+                                        this.new FollowScore1Specimen() // SCORE FIRST SAMPLE
+                                ),
+                        this.new RawDriveForward(),
+                        specimenArm.new SpecimenArmScore(),
+
+                        specimenArm.new doAutoClawStateOpen(),
+                        specimenArm.new SpecimenArmCollect()
+                                .alongWith(
+                                    this.new FollowPickup2Specimen()
+                                ), // PICKUP SECOND SAMPLE
+                        specimenArm.new doAutoClawStateClose(),
+
+                        specimenArm.new SpecimenArmEnter()
+                                .alongWith(
+                                        this.new FollowScore2Specimen() // Score second sample
+                                ),
+                        this.new RawDriveForward(),
+                        specimenArm.new SpecimenArmScore(),
+                        specimenArm.new doAutoClawStateOpen(),
+                        specimenArm.new SpecimenArmCollect()
+                                .alongWith(
+                                    this.new FollowPickup3Specimen()
+                                ), // pickup third sample
+                        specimenArm.new doAutoClawStateClose(),
+
+                        specimenArm.new SpecimenArmEnter()
+                                .alongWith(
+                                        this.new FollowScore3Specimen() // score third sample
+                                ),
+                        this.new RawDriveForward(),
+                        specimenArm.new SpecimenArmScore(),
+                        specimenArm.new doAutoClawStateOpen(),
+                        specimenArm.new SpecimenArmCollect()
+                                .alongWith(
+
+                                    this.new FollowPickup4Specimen()
+                                ), // pickup fourth sample
+                        specimenArm.new doAutoClawStateClose(),
+                        new ParallelCommandGroup(
+                                specimenArm.new SpecimenArmEnter(),
+                                this.new FollowScore4Specimen(), // score fourth sample
+                                slideArm.new wristReady()
+                                ),
+                        this.new RawDriveForward(),
+                        specimenArm.new SpecimenArmScore(),
+                        specimenArm.new doAutoClawStateOpen(),
+                        specimenArm.new SpecimenArmCollect()
+                )
+        );
         while (!isStarted() && !isStopRequested()) {
             if (gamepad1.dpad_right && !teamChangeRequested) {
                 teamChangeRequested = true;
@@ -438,78 +508,13 @@ public class FiveSpecimenAuto extends LinearOpMode {
         }
 
         waitForStart();
-        scheduler = CommandScheduler.getInstance();
+
         slideArm.slideBrakes();
         leftLight.setColor(IndicatorLight.COLOR_BEECON);
         rightLight.setColor(IndicatorLight.COLOR_BEECON);
-        scheduler.schedule(
-                new SequentialCommandGroup(
-                        new ParallelCommandGroup(
-                                slideArm.new wristStow(),
-                                specimenArm.new doAutoClawStateClose(),
-                                specimenArm.new SpecimenArmEnter(),
-                                this.new FollowPreload()
-                        ),
-                        this.new RawDriveForward(),
-                        specimenArm.new SpecimenArmScore(),
-                        //new WaitCommand(80),
-                        specimenArm.new doAutoClawStateOpen(),
-                        specimenArm.new SpecimenArmCollect()
-                                .alongWith(
-                                        this.new FollowPushSamples()),
-
-                        specimenArm.new doAutoClawStateClose(),
-
-                        specimenArm.new SpecimenArmEnter()
-                                .alongWith(
-                                        this.new FollowScore1Specimen()
-                                ),
-                        specimenArm.new SpecimenArmScore(),
-                        //new WaitCommand(80),
-                        specimenArm.new doAutoClawStateOpen(),
-                        specimenArm.new SpecimenArmCollect(),
-                        this.new FollowPickup2Specimen(),
-                        specimenArm.new doAutoClawStateClose(),
-
-                        specimenArm.new SpecimenArmEnter()
-                                .alongWith(
-                                        this.new FollowScore2Specimen()
-                                ),
-                        this.new RawDriveForward(),
-                        specimenArm.new SpecimenArmScore(),
-                        //new WaitCommand(80),
-                        specimenArm.new doAutoClawStateOpen(),
-                        specimenArm.new SpecimenArmCollect(),
-                        this.new FollowPickup3Specimen(),
-                        specimenArm.new doAutoClawStateClose(),
-
-                        specimenArm.new SpecimenArmEnter()
-                                .alongWith(
-                                        this.new FollowScore3Specimen()
-                                ),
-                        this.new RawDriveForward(),
-                        specimenArm.new SpecimenArmScore(),
-                        //new WaitCommand(80),
-                        specimenArm.new doAutoClawStateOpen(),
-                        specimenArm.new SpecimenArmCollect(),
-
-                        this.new FollowPickup4Specimen(),
-                        specimenArm.new doAutoClawStateClose(),
-                        new ParallelCommandGroup(
-                                specimenArm.new SpecimenArmEnter(),
-                                this.new FollowScore4Specimen(),
-                                slideArm.new wristReady()
-                                ),
-                        this.new RawDriveForward(),
-                        specimenArm.new SpecimenArmScore(),
-                        //new WaitCommand(80),
-                        specimenArm.new doAutoClawStateOpen(),
-                        specimenArm.new SpecimenArmCollect()
-                )
-        );
         while (opModeIsActive()) {
             follower.update();
-            slideArm.update();
+            //slideArm.update();
             specimenArm.update();
             // Feedback to Driver Hub
             telemetry.addData("speci arm state", specimenArm.getShoulderState());
@@ -517,11 +522,14 @@ public class FiveSpecimenAuto extends LinearOpMode {
             telemetry.addData("X", follower.getPose().getX());
             telemetry.addData("Y", follower.getPose().getY());
             telemetry.addData("Heading", follower.getPose().getHeading());
+            telemetry.addData("Critical Loop (MS)",criticalLoop.milliseconds());
             telemetry.update();
             scheduler.run();
+            criticalLoop.reset();
 
 
         }
 
+        OpModeTransfer.autoPose = follower.getPose();
     }
     }

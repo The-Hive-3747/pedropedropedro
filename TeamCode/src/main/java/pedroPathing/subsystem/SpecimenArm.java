@@ -30,6 +30,7 @@ public class SpecimenArm {
     private boolean specimenArmDone = true;
     private boolean specimenClawDone = true;
     private boolean scoreRequested = false;
+    private boolean limpCollectRequested = false;
     private double shoulderTimerThreshold = 500.0;
     public static int R_SHOULDER_STOW_POS = 0; //0.07;
     public static int R_SHOULDER_COLLECT_POS = 480; //470; //485; //500;//495;//490;//500; //440; //125;
@@ -46,11 +47,13 @@ public class SpecimenArm {
     public static double SHOULDER_OFFSET = 0.021;
     public static double SPECIMENARM_MOVE_TIME = 1000.0;
     public static double SPECIMENCLAW_OPEN_TIME = 140.0; //150.0;//200.0; //300.0; //200.0; //1000.0;
-    public static double SPECIMENARM_SCORE_TIME = 160.0; //150; //225.0; //250.0; //200.0; //150.0;
+    public static double SPECIMENARM_SCORE_TIME = 190.0; //150; //225.0; //250.0; //200.0; //150.0;
+    public static double SPECIMENARM_ENTER_TIME = 500.0;
     public static double SPECIMENARM_COLLECT_THRESHOLD = 10.0;
     public static double SCORE_LATCH_TIME = 1.0;
     public static double LATCH_SPEED = 0.9;
-    public static double MOVE_SPEED = 0.5;
+    public static double MOVE_SPEED = 0.3;
+    public static double MOVE_SPEED_TO_ENTER = 0.8;
     public static double COLLECT_SPEED =0.0;
     public static double R_SHOULDER_RESET_POWER = -0.2;
 
@@ -83,8 +86,9 @@ public class SpecimenArm {
             rightShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             rightShoulder.setPower(0);
         }
-        if (shoulderPosition != ShoulderState.ENTER && rightShoulder.getCurrentPosition() +SPECIMENARM_COLLECT_THRESHOLD > R_SHOULDER_COLLECT_POS){
+        if (limpCollectRequested && shoulderPosition != ShoulderState.ENTER && rightShoulder.getCurrentPosition() +SPECIMENARM_COLLECT_THRESHOLD > R_SHOULDER_COLLECT_POS){
             //rightShoulder.setPower(0);
+            limpCollectRequested = false;
             rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
             rightShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             rightShoulder.setPower(0);
@@ -234,6 +238,7 @@ public class SpecimenArm {
                 shoulderPosition = ShoulderState.SCORE;
                 rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
                 rightShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                limpCollectRequested = true;
                 //rightShoulder.setTargetPosition(R_SHOULDER_SCORE_POS);
                 //rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 //leftShoulder.setPosition(L_SHOULDER_ENTER_POS);
@@ -242,7 +247,7 @@ public class SpecimenArm {
             case STOW:
             case COLLECT:
                 //if (rightShoulder.getCurrentPosition() < R_SHOULDER_COLLECT_POS){
-                    rightShoulder.setPower(MOVE_SPEED);
+                    rightShoulder.setPower(MOVE_SPEED_TO_ENTER);
                     scoreRequested = false;
                     shoulderPosition = ShoulderState.ENTER;
                     rightShoulder.setTargetPosition(R_SHOULDER_ENTER_POS);
@@ -260,6 +265,7 @@ public class SpecimenArm {
                 rightShoulder.setTargetPosition(R_SHOULDER_COLLECT_POS);
                 rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
                 rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                limpCollectRequested = true;
 
                 break;
             default:
@@ -274,11 +280,13 @@ public class SpecimenArm {
         shoulderPosition = ShoulderState.SCORE;
         rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        limpCollectRequested = true;
     }
 
     public void goToSpecimenEnter() {
-        rightShoulder.setPower(MOVE_SPEED);
+        rightShoulder.setPower(MOVE_SPEED_TO_ENTER);
         scoreRequested = false;
+        limpCollectRequested = false;
         shoulderPosition = ShoulderState.ENTER;
         rightShoulder.setTargetPosition(R_SHOULDER_ENTER_POS);
         rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -291,6 +299,7 @@ public class SpecimenArm {
         rightShoulder.setTargetPosition(R_SHOULDER_COLLECT_POS);
         rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        limpCollectRequested = true;
     }
 
     public ShoulderState getShoulderState(){
@@ -354,19 +363,29 @@ public class SpecimenArm {
     }
 
     public class SpecimenArmEnter extends CommandBase {
-        boolean isDone = false;
+        //boolean isDone = false;
+        boolean isFirstTime = true;
 
         public SpecimenArmEnter() {
         }
 
         @Override
         public void initialize() {
-            isDone = false;
+           // isDone = false;
         }
 
 
         @Override
         public void execute() {
+            if(isFirstTime){
+                specimenArmDone = false;
+                specimenArmTime.reset();
+                goToSpecimenEnter();
+                isFirstTime = false;
+            }
+
+
+            /*
             if (specimenArmDone) {
                 specimenArmDone = false;
                 specimenArmTime.reset();
@@ -382,12 +401,17 @@ public class SpecimenArm {
                 rightShoulder.setPower(0);
             }
             isDone = true;
+             */
+
         }
 
 
         @Override
         public boolean isFinished() {
-            return isDone;
+            if (specimenArmTime.milliseconds() > SPECIMENARM_ENTER_TIME) {
+                return true;
+            }
+            return false;
         }
     }
 

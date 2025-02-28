@@ -1,5 +1,6 @@
 package pedroPathing;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.SortOrder;
@@ -13,7 +14,7 @@ import org.opencv.core.RotatedRect;
 import android.util.Size;
 
 import java.util.List;
-
+@Disabled
 @TeleOp(name = "Color Blob Locator for Red/Blue", group = "Concept")
 public class VisionTestOpMode extends LinearOpMode {
 

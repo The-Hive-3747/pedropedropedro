@@ -12,6 +12,7 @@ import static com.pedropathing.follower.FollowerConstants.rightRearMotorName;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.pedropathing.util.Constants;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -25,7 +26,7 @@ import java.util.List;
 
 import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
-
+@Disabled
 @TeleOp(name = "Motor Directions", group = "Teleop Test")
 public class MotorDirections extends OpMode {
     private Telemetry telemetryA;
@@ -35,6 +36,7 @@ public class MotorDirections extends OpMode {
     private DcMotorEx rightFront;
     private DcMotorEx rightRear;
     private List<DcMotorEx> motors;
+    private double MotorPower = 1.0;
 
     @Override
     public void init() {
@@ -75,22 +77,22 @@ public class MotorDirections extends OpMode {
         rightRear.setDirection(rightRearMotorDirection);
 
         if(gamepad1.a)
-            leftFront.setPower(1);
+            leftFront.setPower(MotorPower);
         else
             leftFront.setPower(0);
 
         if(gamepad1.y)
-            leftRear.setPower(1);
+            leftRear.setPower(MotorPower);
         else
             leftRear.setPower(0);
 
         if(gamepad1.b)
-            rightFront.setPower(1);
+            rightFront.setPower(MotorPower);
         else
             rightFront.setPower(0);
 
         if(gamepad1.x)
-            rightRear.setPower(1);
+            rightRear.setPower(MotorPower);
         else
             rightRear.setPower(0);
 
@@ -103,5 +105,8 @@ public class MotorDirections extends OpMode {
         telemetryA.addData("Right Front Motor Direction: ", rightFrontMotorDirection);
         telemetryA.addData("Right Rear Motor Direction: ", rightRearMotorDirection);
         telemetryA.update();
+    }
+    public void changePower(double power){
+        MotorPower = power;
     }
 }

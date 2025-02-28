@@ -30,7 +30,7 @@ public class MotorTickReaderOpMode extends LinearOpMode {
     //private Telemetry telemetry = null;
     private CRServo leftIntake = null;
     private CRServo rightIntake = null;
-    private RevColorSensorV3 intakeColor = null;
+    //private RevColorSensorV3 intakeColor = null;
     private Servo wrist = null;
     private ElapsedTime colortimer = new ElapsedTime();
     private double COLOR_TIME_THRESHOLD = 150.0;
@@ -45,6 +45,7 @@ public class MotorTickReaderOpMode extends LinearOpMode {
     private static double LUMINANCE_BLUE = 0.114;
     private static double LUMINANCE_PB = 0.564;
     public static double LUMINANCE_PR = 0.713;
+    private boolean increasing_color = true;
     @Override
     public void runOpMode() throws InterruptedException {
 
@@ -61,7 +62,7 @@ public class MotorTickReaderOpMode extends LinearOpMode {
         rightShoulder = hardwareMap.get(DcMotor.class, "right_shoulder");
         leftIntake = hardwareMap.get(CRServo.class, "intake_left");
         rightIntake = hardwareMap.get(CRServo.class, "intake_right");
-        intakeColor = hardwareMap.get(RevColorSensorV3.class, "intake_color");
+        //intakeColor = hardwareMap.get(RevColorSensorV3.class, "intake_color");
         wrist = hardwareMap.get(Servo.class, "wrist");
 
         pivotMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -92,12 +93,22 @@ public class MotorTickReaderOpMode extends LinearOpMode {
 
         while (opModeIsActive()) {
 
-            if (colortimer.milliseconds()>COLOR_TIME_THRESHOLD){
-                color += COLOR_CHANGE;
-                if (color>COLOR_MAX){
-                    color = COLOR_START;
+            if (colortimer.milliseconds() > COLOR_TIME_THRESHOLD) {
+                if (increasing_color) {
+                    color += COLOR_CHANGE;
+                    if (color > COLOR_MAX) {
+                        color = COLOR_MAX;
+                        increasing_color = false;  // Start fading back
+                    }
+                } else {
+                    color -= COLOR_CHANGE;
+                    if (color < COLOR_START) {
+                        color = COLOR_START;
+                        increasing_color = true;  // Start increasing again
+                    }
                 }
             }
+
             leftLight.setColor(color);
             rightLight.setColor(color);
             telemetry.addData("Left Slide Ticks", leftSlideMotor.getCurrentPosition() );
@@ -105,11 +116,11 @@ public class MotorTickReaderOpMode extends LinearOpMode {
             telemetry.addData("Pivot Motor Ticks", pivotMotor.getCurrentPosition());
             telemetry.addData("Right Shoulder Ticks", rightShoulder.getCurrentPosition());
             telemetry.addData("Wrist Ticks", wrist.getPosition());
-            telemetry.addData("Color Distance (cm)", intakeColor.getDistance(DistanceUnit.CM));
-            telemetry.addData("Team Color", detectColor());
-            telemetry.addData("Red", intakeColor.red());
-            telemetry.addData("Blue", intakeColor.blue());
-            telemetry.addData("Green", intakeColor.green());
+            //telemetry.addData("Color Distance (cm)", intakeColor.getDistance(DistanceUnit.CM));
+            //telemetry.addData("Team Color", detectColor());
+            //telemetry.addData("Red", intakeColor.red());
+            //telemetry.addData("Blue", intakeColor.blue());
+            //telemetry.addData("Green", intakeColor.green());
             telemetry.update();
 
             TelemetryPacket packet = new TelemetryPacket();
@@ -118,6 +129,7 @@ public class MotorTickReaderOpMode extends LinearOpMode {
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }
     }
+    /*
     public double getLuminancePb() {
         return LUMINANCE_PB*(intakeColor.blue())-(intakeColor.red()*LUMINANCE_RED+
                 LUMINANCE_GREEN*intakeColor.green()+LUMINANCE_BLUE*intakeColor.blue());
@@ -134,5 +146,5 @@ public class MotorTickReaderOpMode extends LinearOpMode {
             return SampleColor.SAMPLE_RED;
         }
         return SampleColor.SAMPLE_YELLOW;
-    }
+    }*/
 }
