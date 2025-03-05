@@ -118,7 +118,7 @@ public class SlideArm {
 
     private CRServo leftIntake = null;
     private CRServo rightIntake = null;
-    //private RevColorSensorV3 intakeColor = null;
+    private RevColorSensorV3 intakeColor = null;
     private ServoImplEx wrist = null;
     public static double AUTO_DETECT_TIME = 0.0;
 
@@ -134,7 +134,7 @@ public class SlideArm {
         rightSlideMotor = hardwareMap.get(DcMotor.class, "right_slide_motor");
         leftIntake = hardwareMap.get(CRServo.class, "intake_left");
         rightIntake = hardwareMap.get(CRServo.class, "intake_right");
-        //intakeColor = hardwareMap.get(RevColorSensorV3.class, "intake_color");
+        intakeColor = hardwareMap.get(RevColorSensorV3.class, "intake_color");
         wrist = hardwareMap.get(ServoImplEx.class, "wrist");
 
         if (resetMotors){
@@ -616,7 +616,7 @@ public class SlideArm {
 
 
     }
-    /*public boolean activateIntakeWithSensor(){
+    public boolean activateIntakeWithSensor(){
         boolean isDone = false;
         if (intakeColor.getDistance(DistanceUnit.CM) > INTAKE_DISTANCE_STOP_CM){
             if (!isWristGather()){
@@ -643,8 +643,8 @@ public class SlideArm {
             }
         }
         return isDone;
-    }*/
-    /*
+    }
+
     public SampleColor detectColor(){
         if (LUMINANCE_BLUE_CB_MIN < getLuminancePb()){
             return SampleColor.SAMPLE_BLUE;
@@ -680,7 +680,7 @@ public class SlideArm {
         return false;
     }
 
-     */
+
     public void activateIntakeWithoutSensor(){
         leftIntake.setPower(INTAKE_LEFT_POWER);
         rightIntake.setPower(INTAKE_RIGHT_POWER);
@@ -753,7 +753,7 @@ public class SlideArm {
             wrist.setPosition(pos);
         }
     }*/
-/*
+
     public double getIntakeDistaceCM(){
         return intakeColor.getDistance(DistanceUnit.CM);
     }
@@ -766,7 +766,7 @@ public class SlideArm {
                 LUMINANCE_GREEN*intakeColor.green()+LUMINANCE_BLUE*intakeColor.blue());
     }
 
- */
+
     public void addSlideTelemetry(){
         telemetry.addData("Left Slide Ticks", leftSlideMotor.getCurrentPosition());
         telemetry.addData("Right Slide Ticks", rightSlideMotor.getCurrentPosition());
@@ -1063,11 +1063,11 @@ public class SlideArm {
             if (!autoIntakeStarted) {
                 autoIntakeStarted = true;
                 autoIntakeTime.reset();
-                activateIntakeWithoutSensor();
+                activateIntakeWithSensor();
                 //isDone = false;
             }
             else if (autoIntakeTime.milliseconds() < AUTO_INTAKE_PICKUP_THRESHOLD) {
-                activateIntakeWithoutSensor();
+                activateIntakeWithSensor();
                 //isDone = false;
             }
             else if (autoIntakeTime.milliseconds() > AUTO_INTAKE_PICKUP_THRESHOLD) {

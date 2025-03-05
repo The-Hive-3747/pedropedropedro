@@ -55,14 +55,14 @@ public class SampleAuto extends LinearOpMode {
         return new PathBuilder()
                 .addPath(new BezierLine( // after place, goes to first sample
                         new Point(8, 125, Point.CARTESIAN),
-                        new Point(24.2, 121.5, Point.CARTESIAN)))
+                        new Point(24.2, 121.75, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(0))
                 .build();
     }
     public static PathChain score1Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(24.2, 121.5, Point.CARTESIAN),
+                        new Point(24.2, 121.75, Point.CARTESIAN),
                         new Point(12.4, 129.7, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-40))
@@ -73,7 +73,7 @@ public class SampleAuto extends LinearOpMode {
         return new PathBuilder()
                 .addPath(new BezierLine(
                         new Point(12.4, 129.7, Point.CARTESIAN),
-                        new Point(24.75, 130.0, Point.CARTESIAN)
+                        new Point(24.75, 130.5, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(-40), Math.toRadians(0))
                 .build();
@@ -82,7 +82,7 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain score2Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(24.75, 130.0, Point.CARTESIAN),
+                        new Point(24.75, 130.5, Point.CARTESIAN),
                         new Point(12.6, 130.6, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-45))

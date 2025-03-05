@@ -181,7 +181,7 @@ public class TeleOpComp extends LinearOpMode {
                 if (gamepad2.b && !pivotHangRequested) {
                     slideArm.pivotHang();
                     specimenArm.clawStateClose();
-                    specimenArm.goToSpecimenCollect();
+                    //specimenArm.goToSpecimenCollect();
                     slideArm.setWristToStow();
                     pivotHangRequested = true;
                 }
@@ -265,12 +265,12 @@ public class TeleOpComp extends LinearOpMode {
                     //leftLight.setColor(leftLight.COLOR_SAGE);
                     //rightLight.setColor(rightLight.COLOR_SAGE);
                 }
-                /*if (gamepad2.left_bumper) {
+                if (gamepad2.left_bumper) {
                     isIntaking = true;
                     //leftLight.setColor(IndicatorLight.COLOR_BEECON);
                     slideArm.isKeeperBlock();
                     slideArm.activateIntakeWithSensor();
-                }*/
+                }
 
                     //leftLight.setColor(leftLight.COLOR_SAGE);
                     //rightLight.setColor(rightLight.COLOR_SAGE);
