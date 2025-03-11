@@ -14,7 +14,7 @@ import org.opencv.core.RotatedRect;
 import android.util.Size;
 
 import java.util.List;
-@Disabled
+
 @TeleOp(name = "Color Blob Locator for Red/Blue", group = "Concept")
 public class VisionTestOpMode extends LinearOpMode {
 
@@ -47,7 +47,7 @@ public class VisionTestOpMode extends LinearOpMode {
         // Build the vision portal with the color locator process
         VisionPortal portal = new VisionPortal.Builder()
                 .addProcessor(colorLocator)
-                .setCameraResolution(new Size(320, 240))  // Use a lower resolution for better performance
+                .setCameraResolution(new Size(1280, 720))  //320 , 240 Use a lower resolution for better performance
                 .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
                 .build();
 

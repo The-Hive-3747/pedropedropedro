@@ -1,14 +1,19 @@
 package pedroPathing.subsystem;
 
+import android.hardware.Sensor;
+
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.command.CommandBase;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
+import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcontroller.external.samples.SensorREV2mDistance;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 @Config
@@ -22,6 +27,7 @@ public class SpecimenArm {
     private Servo leftShoulder = null;
     private ServoImplEx claw = null;
     public DcMotor rightShoulder = null;
+    public TouchSensor clawSensor;
     private ServoImplEx leftShoulderEx = null;
     private ShoulderState shoulderPosition = ShoulderState.COLLECT;
     private ElapsedTime specimenArmTime = new ElapsedTime();
@@ -69,6 +75,9 @@ public class SpecimenArm {
         claw = hardwareMap.get(ServoImplEx.class, "claw");
         rightShoulder = hardwareMap.get(DcMotor.class, "right_shoulder"); // Ready: 26.75
         leftShoulderEx = hardwareMap.get(ServoImplEx.class, "left_shoulder");
+        clawSensor = hardwareMap.get(TouchSensor.class, "claw_sensor");
+        //clawSensor.getConnectionInfo()
+
         if (resetMotors){
             rightShoulder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         }
@@ -97,6 +106,17 @@ public class SpecimenArm {
     }
     public void zeroMotors(){
         rightShoulder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+    }
+    //NEEDS TO BE TESTED
+    public void clawSensorGrab() {
+        clawStateClose();
+        goToNextSpecimenState();
+        /*rightShoulder.setPower(MOVE_SPEED_TO_ENTER);
+        shoulderPosition = ShoulderState.ENTER;
+        rightShoulder.setTargetPosition(R_SHOULDER_ENTER_POS);
+        rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+*/
+
     }
     public void nextClawState() {
             if (clawState == ClawState.OPEN) {

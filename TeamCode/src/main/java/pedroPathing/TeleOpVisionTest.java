@@ -3,16 +3,13 @@ package pedroPathing;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.localization.Pose;
-import com.pedropathing.util.Constants;
-import com.pedropathing.util.Drawing;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import java.util.Stack;
 
 import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
@@ -21,11 +18,9 @@ import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.SlideArm;
 import pedroPathing.subsystem.SpecimenArm;
 
-import java.util.Stack;
-
-@TeleOp(name="TeleOpComp")
+@TeleOp(name="TeleOpVisionTest")
 @Config
-public class TeleOpComp extends LinearOpMode {
+public class TeleOpVisionTest extends LinearOpMode {
     public static enum TeamColor {TEAM_BLUE, TEAM_RED}
     public static enum SampleColor {SAMPLE_BLUE, SAMPLE_RED, SAMPLE_YELLOW}
     public static TeamColor HIVE_COLOR = TeamColor.TEAM_BLUE;
@@ -65,7 +60,6 @@ public class TeleOpComp extends LinearOpMode {
     private boolean wristChangeRequested = false;
     private boolean isSlowToScore = false;
     private boolean isOutaking = false;
-    private boolean clawSensorRan = false;
     private SpecimenArm specimenArm = null;
     private ElapsedTime rumbleHangTimer = new ElapsedTime();
     private ElapsedTime shoulderTimer = new ElapsedTime();
@@ -100,7 +94,7 @@ public class TeleOpComp extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
 
-        HIVE_COLOR = OpModeTransfer.autoColor;
+        //              HIVE_COLOR = OpModeTransfer.autoColor;
         IndicatorLight leftLight = new IndicatorLight(hardwareMap, telemetry, "left_light");
         IndicatorLight rightLight = new IndicatorLight(hardwareMap, telemetry, "right_light");
 
@@ -117,7 +111,7 @@ public class TeleOpComp extends LinearOpMode {
         slideArm = new SlideArm(hardwareMap, telemetry, false);
         //leftLight.setColor(IndicatorLight.COLOR_GREEN);
         //rightLight.setColor(IndicatorLight.COLOR_GREEN);
-        if (HIVE_COLOR == TeleOpComp.TeamColor.TEAM_BLUE) {
+        if (HIVE_COLOR == TeleOpVisionTest.TeamColor.TEAM_BLUE) {
             leftLight.setColor(IndicatorLight.COLOR_BLUE);
             rightLight.setColor(IndicatorLight.COLOR_BEECON);
         } else {
@@ -230,12 +224,6 @@ public class TeleOpComp extends LinearOpMode {
                 if (slideWasExtend && !gamepad2.dpad_right) {
                     slideWasExtend = false;
                     slideArm.stopSliding();
-                }
-                if (!clawSensorRan && specimenArm.clawSensor.isPressed()) {
-                    specimenArm.clawSensorGrab();
-                    clawSensorRan = true;
-                } else {
-                    clawSensorRan = false;
                 }
                 if (gamepad2.y) {
                     /*telemetry.addData("Status", "Pivoting Up");
@@ -398,7 +386,7 @@ public class TeleOpComp extends LinearOpMode {
                     leftLight.setColor(IndicatorLight.COLOR_BLUE);
                     rightLight.setColor(IndicatorLight.COLOR_SAGE);
                 }
-                else if (HIVE_COLOR ==TeamColor.TEAM_RED) {
+                else if (HIVE_COLOR == TeamColor.TEAM_RED) {
                     leftLight.setColor(IndicatorLight.COLOR_RED);
                     rightLight.setColor(IndicatorLight.COLOR_SAGE);
                 }
@@ -429,7 +417,6 @@ public class TeleOpComp extends LinearOpMode {
             telemetry.addData("Wrist Status", slideArm.getWristPosition());
             slideArm.addSlideTelemetry();
             telemetry.addData("Right Shoulder Ticks", specimenArm.rightShoulder.getCurrentPosition());
-            telemetry.addData("Claw Touch Sensor", specimenArm.clawSensor.isPressed());
             /*telemetry.addData("Hit gamepad1.X to move shoulder","");
             telemetry.addData("Hit gamepad1.Y to move claw","");
             telemetry.addData("Hit gamepad2.B to pivot for hang","");
