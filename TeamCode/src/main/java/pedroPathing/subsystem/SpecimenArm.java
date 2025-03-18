@@ -110,12 +110,8 @@ public class SpecimenArm {
     //NEEDS TO BE TESTED
     public void clawSensorGrab() {
         clawStateClose();
-        goToNextSpecimenState();
-        /*rightShoulder.setPower(MOVE_SPEED_TO_ENTER);
-        shoulderPosition = ShoulderState.ENTER;
-        rightShoulder.setTargetPosition(R_SHOULDER_ENTER_POS);
-        rightShoulder.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-*/
+        goToSpecimenEnter();
+
 
     }
     public void nextClawState() {

@@ -511,3 +511,11 @@ public class TeleOpVisionTest extends LinearOpMode {
         }
     }
 }
+
+/* if (gamepad2.left_stick_button && !disableSpecimenArmWasPushed) {
+        specimenArm.disableSpecimenArm();
+disableSpecimenArmWasPushed = true;
+        } else if (!gamepad2.left_stick_button && disableSpecimenArmWasPushed){
+disableSpecimenArmWasPushed = false;
+        }
+*/

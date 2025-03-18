@@ -5,11 +5,13 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.pedropathing.follower.Follower;
+import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.localization.Pose;
 import com.pedropathing.util.Constants;
 import com.pedropathing.util.Drawing;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -43,10 +45,13 @@ public class TeleOpComp extends LinearOpMode {
     private boolean slideWasExtend = false;
     private boolean clawWasPushed = false;
     private boolean shoulderWasPushed = false;
+    private boolean disableSpecimenArmWasPushed = false;
+    private boolean releaseSlideArmHangWasPushed = false;
     private boolean configModeActivated = false;
     private boolean configWasRequested = false;
     private boolean pivotResetWasRequested = false;
     private boolean retractResetWasRequested = false;
+    private boolean hiveColorChangeWasRequested = true;
     private boolean teamChangeRequested = false;
     private boolean resetSpeciWasRequested = false;
     private boolean retractResetNeeded = false;
@@ -66,7 +71,15 @@ public class TeleOpComp extends LinearOpMode {
     private boolean isSlowToScore = false;
     private boolean isOutaking = false;
     private boolean clawSensorRan = false;
+    private boolean clawSensorWasPressed = false;
+    private double RAW_DRIVE_TIME = 200.0; //250.0;
+    private DcMotor leftFront = null;
+    private DcMotor rightFront = null;
+    private DcMotor leftBack = null;
+    private DcMotor rightBack = null;
+    private double DRIVE_POWER = 0.3;
     private SpecimenArm specimenArm = null;
+    private ElapsedTime driveTime = new ElapsedTime();
     private ElapsedTime rumbleHangTimer = new ElapsedTime();
     private ElapsedTime shoulderTimer = new ElapsedTime();
     private SlideArm slideArm = null;
@@ -111,6 +124,11 @@ public class TeleOpComp extends LinearOpMode {
         //Constants.setConstants(FConstants.class, LConstants.class);
         follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
         follower.setStartingPose(OpModeTransfer.autoPose);
+        leftFront = hardwareMap.get(DcMotor.class, FollowerConstants.leftFrontMotorName);
+        rightFront = hardwareMap.get(DcMotor.class,FollowerConstants.rightFrontMotorName);
+        leftBack = hardwareMap.get(DcMotor.class,FollowerConstants.leftRearMotorName);
+        rightBack = hardwareMap.get(DcMotor.class,FollowerConstants.rightRearMotorName);
+
         //PinpointDrive drive = new PinpointDrive(hardwareMap, new Pose2d(0, 0, 0));
 
         specimenArm = new SpecimenArm(hardwareMap, telemetry, false);
@@ -120,6 +138,7 @@ public class TeleOpComp extends LinearOpMode {
         if (HIVE_COLOR == TeleOpComp.TeamColor.TEAM_BLUE) {
             leftLight.setColor(IndicatorLight.COLOR_BLUE);
             rightLight.setColor(IndicatorLight.COLOR_BEECON);
+            hiveColorChangeWasRequested = true;
         } else {
             leftLight.setColor(IndicatorLight.COLOR_RED);
             rightLight.setColor(IndicatorLight.COLOR_BEECON);
@@ -146,8 +165,11 @@ public class TeleOpComp extends LinearOpMode {
                 runConfigMode();
             }else {
 
-                if (gamepad2.left_stick_button) {
+                if (gamepad2.left_stick_button && !disableSpecimenArmWasPushed) {
                     specimenArm.disableSpecimenArm();
+                    disableSpecimenArmWasPushed = true;
+                } else if (!gamepad2.left_stick_button && disableSpecimenArmWasPushed){
+                    disableSpecimenArmWasPushed = false;
                 }
                 /*if (gamepad2.left_stick_x > STICK_X_RIGHT) {
                     slideArm.moveWristRight();
@@ -212,8 +234,11 @@ public class TeleOpComp extends LinearOpMode {
                 } else if (!gamepad1.y && clawWasPushed) {
                     clawWasPushed = false;
                 }
-                if (gamepad1.back) {
+                if (gamepad1.back && !releaseSlideArmHangWasPushed) {
                     slideArm.hangRelease();
+                    releaseSlideArmHangWasPushed = true;
+                } else if (!gamepad1.back && releaseSlideArmHangWasPushed) {
+                    releaseSlideArmHangWasPushed = false;
                 }
                 if (gamepad2.dpad_left) {
                     slideWasRetract = true;
@@ -231,10 +256,18 @@ public class TeleOpComp extends LinearOpMode {
                     slideWasExtend = false;
                     slideArm.stopSliding();
                 }
-                if (!clawSensorRan && specimenArm.clawSensor.isPressed()) {
+                if (!clawSensorRan && !clawSensorWasPressed && specimenArm.clawSensor.isPressed()) {
                     specimenArm.clawSensorGrab();
+                    driveTime.reset();
+                    rawDriveForward();
                     clawSensorRan = true;
-                } else {
+                }
+                if (clawSensorRan && !clawSensorWasPressed && driveTime.milliseconds() > RAW_DRIVE_TIME){
+                    clawSensorWasPressed = true;
+                    stopDriveForward();
+                }
+                if (clawSensorRan && clawSensorWasPressed && !specimenArm.clawSensor.isPressed()){
+                    clawSensorWasPressed = false;
                     clawSensorRan = false;
                 }
                 if (gamepad2.y) {
@@ -328,7 +361,7 @@ public class TeleOpComp extends LinearOpMode {
                 }
             }
             if (gamepad1.dpad_up && !configWasRequested) {
-                configModeActivated = !configModeActivated;
+                configModeActivated = false;
                 configWasRequested = true;
             } else if (!gamepad1.dpad_up && configWasRequested) {
                 configWasRequested = false;
@@ -382,6 +415,7 @@ public class TeleOpComp extends LinearOpMode {
                 if (HIVE_COLOR == TeamColor.TEAM_BLUE){
                     leftLight.setColor(IndicatorLight.COLOR_BLUE);
                     rightLight.setColor(IndicatorLight.COLOR_ORANGE);
+                    hiveColorChangeWasRequested = true;
                 }else{
                     leftLight.setColor(IndicatorLight.COLOR_RED);
                     rightLight.setColor(IndicatorLight.COLOR_ORANGE);
@@ -397,10 +431,12 @@ public class TeleOpComp extends LinearOpMode {
                 if (HIVE_COLOR == TeamColor.TEAM_BLUE) {
                     leftLight.setColor(IndicatorLight.COLOR_BLUE);
                     rightLight.setColor(IndicatorLight.COLOR_SAGE);
+                    hiveColorChangeWasRequested = true;
                 }
                 else if (HIVE_COLOR ==TeamColor.TEAM_RED) {
                     leftLight.setColor(IndicatorLight.COLOR_RED);
                     rightLight.setColor(IndicatorLight.COLOR_SAGE);
+                    hiveColorChangeWasRequested = true;
                 }
             }
             else{
@@ -414,7 +450,10 @@ public class TeleOpComp extends LinearOpMode {
             if (maxLoopTime < criticalLoopTimer.milliseconds()){
                 maxLoopTime = criticalLoopTimer.milliseconds();
             }
-            telemetry.addData("Team Color", HIVE_COLOR);
+            //NEED to add if statement for hiveColorChangeRequested below:
+            if(hiveColorChangeWasRequested) {
+                telemetry.addData("Team Color", HIVE_COLOR);
+            }
             telemetry.addData("Config Mode Activated", configModeActivated);
             telemetry.addData("Critical Loop MS", criticalLoopTimer.milliseconds());
             criticalLoopTimer.reset();
@@ -451,6 +490,7 @@ public class TeleOpComp extends LinearOpMode {
             telemetry.addData("--------------------------------CONFIG MODE", "");
             telemetry.addData("Hit gamepad 1 dpad RIGHT to change TEAM color", "");*/
             telemetry.update();
+            hiveColorChangeWasRequested = false;
 
             // TODO: IF FTC DASHBOARD NEEDED: UNCOMMENT TELEMETRYPACKET & FTCDASHBOARD
 
@@ -462,6 +502,25 @@ public class TeleOpComp extends LinearOpMode {
             //FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }
     }
+public void rawDriveForward(){
+            follower.breakFollowing();
+            leftBack.setPower(DRIVE_POWER);
+            rightBack.setPower(DRIVE_POWER);
+            leftFront.setPower(DRIVE_POWER);
+            rightFront.setPower(DRIVE_POWER);
+            leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
+        public void stopDriveForward() {
+                leftBack.setPower(0);
+                rightBack.setPower(0);
+                leftFront.setPower(0);
+                rightFront.setPower(0);
+                follower.startTeleopDrive();
+    }
+
 
     public void runConfigMode(){
         if (gamepad2.b) {
@@ -486,6 +545,7 @@ public class TeleOpComp extends LinearOpMode {
         }
         if (gamepad1.dpad_right && !teamChangeRequested) {
             teamChangeRequested = true;
+            hiveColorChangeWasRequested = true;
             if (HIVE_COLOR == TeamColor.TEAM_BLUE) {
                 HIVE_COLOR = TeamColor.TEAM_RED;
             }else{
@@ -493,6 +553,7 @@ public class TeleOpComp extends LinearOpMode {
             }
         }
         if (!gamepad1.dpad_right && teamChangeRequested){
+            teamChangeRequested = false;
             teamChangeRequested = false;
         }
         if (gamepad1.x){
