@@ -531,5 +531,6 @@ public class FiveSpecimenAuto extends LinearOpMode {
         }
 
         OpModeTransfer.autoPose = follower.getPose();
+        OpModeTransfer.autoColor = HIVE_COLOR;
     }
     }

@@ -39,7 +39,10 @@ public class TeleOpComp extends LinearOpMode {
     public static double HIGH_SPEED_THRESHOLD = 0.8;
     public static double LOW_SPEED_THRESHOLD = 0.1;
     public static int RUMBLE_HANG_TIME_OUT = 90;
+    public static int RUMBLE_HANG_TIME_OUT_END = 95;
     public static int RUMBLE_HANG_TIME2_OUT = 105;
+    public static int RUMBLE_HANG_TIME2_OUT_END = 110;
+    public static double FLASH_LIGHT_SECONDS = 0.5;
     public static Stack<Double> battery_checker = new Stack<>();
     private boolean slideWasRetract = false;
     private boolean slideWasExtend = false;
@@ -72,6 +75,9 @@ public class TeleOpComp extends LinearOpMode {
     private boolean isOutaking = false;
     private boolean clawSensorRan = false;
     private boolean clawSensorWasPressed = false;
+    private boolean sensorIntakeRequested = false;
+    private boolean showWarningLights = false;
+    private boolean noLimitsSlideWasExtend = false;
     private double RAW_DRIVE_TIME = 200.0; //250.0;
     private DcMotor leftFront = null;
     private DcMotor rightFront = null;
@@ -90,6 +96,7 @@ public class TeleOpComp extends LinearOpMode {
     private ElapsedTime resetSpeciTimer = new ElapsedTime();
     private ElapsedTime criticalLoopTimer = new ElapsedTime();
     private ElapsedTime slowDownTimer = new ElapsedTime();
+    private ElapsedTime flashLightTimer = new ElapsedTime();
     //private static Pose2d RESET_POSE = new Pose2d(0.0, 0.0, 0.0);
     private static double pivotTimerThreshold = 1000.0;
     private static double wristTimerThreshold = 750.0;
@@ -151,7 +158,10 @@ public class TeleOpComp extends LinearOpMode {
                 slideArm.resetSlideEncoders();
                 specimenArm.resetSpecimenEncoders();
             }
+            telemetry.addData("Press Gamepad1 back to reset all motor 0s", "");
+            telemetry.update();
         }
+
         waitForStart();
 
         rumbleHangTimer.reset();
@@ -171,6 +181,17 @@ public class TeleOpComp extends LinearOpMode {
                 } else if (!gamepad2.left_stick_button && disableSpecimenArmWasPushed){
                     disableSpecimenArmWasPushed = false;
                 }
+
+                if (gamepad2.right_stick_button && gamepad2.dpad_right) {
+                    noLimitsSlideWasExtend = true;
+                    slideArm.slideUpOneStepWithoutLimits();
+                }
+
+                if (!gamepad2.right_stick_button && noLimitsSlideWasExtend) {
+                    noLimitsSlideWasExtend = false;
+                    slideArm.stopSliding();
+                }
+
                 /*if (gamepad2.left_stick_x > STICK_X_RIGHT) {
                     slideArm.moveWristRight();
                 }
@@ -183,7 +204,7 @@ public class TeleOpComp extends LinearOpMode {
                     shoulderTimer.reset();
                     specimenArm.goToNextSpecimenState();
                 }*/
-                /*if (rumbleHangTimer.seconds() >= RUMBLE_HANG_TIME_OUT && !rumble1Fired) {
+                if (rumbleHangTimer.seconds() >= RUMBLE_HANG_TIME_OUT && !rumble1Fired) {
                    rumble1Fired = true;
                    gamepad1.rumble(300);
                    gamepad2.rumble(300);
@@ -191,7 +212,19 @@ public class TeleOpComp extends LinearOpMode {
                     rumble2Fired = true;
                     gamepad1.rumble(300);
                     gamepad2.rumble(300);
-                }*/
+                }
+                if (rumbleHangTimer.seconds() >= RUMBLE_HANG_TIME_OUT && rumbleHangTimer.seconds() <= RUMBLE_HANG_TIME_OUT_END) {
+                    if (flashLightTimer.seconds() >= FLASH_LIGHT_SECONDS) {
+                        showWarningLights = !showWarningLights;
+                        rumbleHangTimer.reset();
+                    }
+                }
+                if (rumbleHangTimer.seconds() >= RUMBLE_HANG_TIME2_OUT && rumbleHangTimer.seconds() <= RUMBLE_HANG_TIME2_OUT_END) {
+                    if (flashLightTimer.seconds() >= FLASH_LIGHT_SECONDS) {
+                        showWarningLights = !showWarningLights;
+                        rumbleHangTimer.reset();
+                    }
+                }
                 if (gamepad1.x && !shoulderWasPushed) {
                     if (specimenArm.getShoulderState() == SpecimenArm.ShoulderState.ENTER){
                         isSlowToScore = true;
@@ -307,17 +340,23 @@ public class TeleOpComp extends LinearOpMode {
                     //leftLight.setColor(leftLight.COLOR_SAGE);
                     //rightLight.setColor(rightLight.COLOR_SAGE);
                 }
-                if (gamepad2.left_bumper) {
-                    isIntaking = true;
+                if (gamepad2.left_bumper && !isIntaking) {
+                    isIntaking = slideArm.activateIntakeWithSensor();
+                    sensorIntakeRequested = true;
                     //leftLight.setColor(IndicatorLight.COLOR_BEECON);
-                    slideArm.isKeeperBlock();
-                    slideArm.activateIntakeWithSensor();
+                    //slideArm.isKeeperBlock();
+                    //slideArm.activateIntakeWithSensor();
+                }
+                if (!gamepad2.left_bumper && sensorIntakeRequested) {
+                    sensorIntakeRequested = false;
+                    isIntaking = false;
+                    slideArm.stopIntake();
                 }
 
                     //leftLight.setColor(leftLight.COLOR_SAGE);
                     //rightLight.setColor(rightLight.COLOR_SAGE);
 
-                if (!gamepad2.right_bumper && !gamepad2.left_bumper && intakeRequested) {
+                if (!gamepad2.right_bumper && intakeRequested) {
                     isIntaking = false;
                     slideArm.stopIntake();
                     intakeRequested = false;
@@ -361,7 +400,7 @@ public class TeleOpComp extends LinearOpMode {
                 }
             }
             if (gamepad1.dpad_up && !configWasRequested) {
-                configModeActivated = false;
+                configModeActivated = !configModeActivated;
                 configWasRequested = true;
             } else if (!gamepad1.dpad_up && configWasRequested) {
                 configWasRequested = false;
@@ -424,10 +463,19 @@ public class TeleOpComp extends LinearOpMode {
                     rightLight.setColor(IndicatorLight.COLOR_VIOLET);
                 }
             }
+            else if (showWarningLights) {
+                leftLight.setColor(IndicatorLight.COLOR_RED);
+                rightLight.setColor(IndicatorLight.COLOR_RED);
+            }
             else if (slideArm.hangRequested){
                 leftLight.setColor(IndicatorLight.COLOR_VIOLET);
                 rightLight.setColor(IndicatorLight.COLOR_VIOLET);
-            }else if (isIntaking && slideArm.isWristGather()){
+            }
+            else if (noLimitsSlideWasExtend) {
+                leftLight.setColor(IndicatorLight.COLOR_BLUE);
+                rightLight.setColor(IndicatorLight.COLOR_BLUE);
+            }
+            else if (isIntaking && slideArm.isWristGather()){
                 if (HIVE_COLOR == TeamColor.TEAM_BLUE) {
                     leftLight.setColor(IndicatorLight.COLOR_BLUE);
                     rightLight.setColor(IndicatorLight.COLOR_SAGE);
@@ -502,27 +550,36 @@ public class TeleOpComp extends LinearOpMode {
             //FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }
     }
-public void rawDriveForward(){
-            follower.breakFollowing();
-            leftBack.setPower(DRIVE_POWER);
-            rightBack.setPower(DRIVE_POWER);
-            leftFront.setPower(DRIVE_POWER);
-            rightFront.setPower(DRIVE_POWER);
-            leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        }
-        public void stopDriveForward() {
-                leftBack.setPower(0);
-                rightBack.setPower(0);
-                leftFront.setPower(0);
-                rightFront.setPower(0);
-                follower.startTeleopDrive();
+    public void rawDriveForward(){
+        follower.breakFollowing();
+        leftBack.setPower(DRIVE_POWER);
+        rightBack.setPower(DRIVE_POWER);
+        leftFront.setPower(DRIVE_POWER);
+        rightFront.setPower(DRIVE_POWER);
+        leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    }
+    public void stopDriveForward() {
+        leftBack.setPower(0);
+        rightBack.setPower(0);
+        leftFront.setPower(0);
+        rightFront.setPower(0);
+        follower.startTeleopDrive();
+    }
+    public void restartTeleopDrive() {
+        follower.startTeleopDrive();
     }
 
 
     public void runConfigMode(){
+        telemetry.addData("Gamepad2.b", "Pivot Down No Limits");
+        telemetry.addData("Gamepad2 dpad left", "Retract No Limits");
+        telemetry.addData("Gamepad1 dpad right", "Change Team");
+        telemetry.addData("Gamepad1 guide (Logo Button)", "Start Teleop Drive");
+        telemetry.addData("Gamepad1 x", "Reset Speciarm");
+        telemetry.addData("Gamepad1 start", "Zero Everything");
         if (gamepad2.b) {
             pivotResetWasRequested = true;
             slideArm.pivotDownWithoutLimits();
@@ -555,6 +612,9 @@ public void rawDriveForward(){
         if (!gamepad1.dpad_right && teamChangeRequested){
             teamChangeRequested = false;
             teamChangeRequested = false;
+        }
+        if (gamepad1.guide) {
+            restartTeleopDrive();
         }
         if (gamepad1.x){
             resetSpeciWasRequested = true;

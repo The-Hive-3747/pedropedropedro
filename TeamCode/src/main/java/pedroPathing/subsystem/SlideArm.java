@@ -536,6 +536,53 @@ public class SlideArm {
         }
         */
     }
+    public boolean slideUpOneStepWithoutLimits(){
+        int LIMIT = SLIDE_LEFT_HANG_LIMIT;
+        boolean isLeftDone = false;
+        boolean isRightDone = false;
+
+        if(leftSlideMotor.getCurrentPosition() <= LIMIT - SLIDE_TOLERANCE){
+            leftSlideMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            leftSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            leftSlideMotor.setPower(SLIDE_POWER);
+        }else{
+            leftSlideMotor.setTargetPosition(LIMIT); //leftSlideMotor.getCurrentPosition());
+            leftSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            leftSlideMotor.setPower(SLIDE_POWER_SCORE_HOLD);
+            isLeftDone = true;
+        }
+        if(rightSlideMotor.getCurrentPosition() <= LIMIT - SLIDE_TOLERANCE) {
+            rightSlideMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rightSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            rightSlideMotor.setPower(SLIDE_POWER);
+        }else{
+            rightSlideMotor.setTargetPosition(LIMIT); //rightSlideMotor.getCurrentPosition());
+            rightSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rightSlideMotor.setPower(SLIDE_POWER_SCORE_HOLD);
+            isRightDone = true;
+        }
+        return !isLeftDone || !isRightDone;
+
+
+        /*
+        int targetPos = frontSlideMotor.getCurrentPosition()+SLIDE_STEP;
+        if (targetPos>SLIDE_FRONT_STOP_TICKS){
+            frontSlideMotor.setTargetPosition(SLIDE_FRONT_STOP_TICKS);
+            backSlideMotor.setTargetPosition(SLIDE_BACK_STOP_TICKS);
+            frontSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            backSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            frontSlideMotor.setPower(SLIDE_POWER);
+            backSlideMotor.setPower(SLIDE_POWER);
+        } else{
+            frontSlideMotor.setTargetPosition(frontSlideMotor.getCurrentPosition()+SLIDE_STEP);
+            backSlideMotor.setTargetPosition(backSlideMotor.getCurrentPosition()+SLIDE_STEP);
+            frontSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            backSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            frontSlideMotor.setPower(SLIDE_POWER);
+            backSlideMotor.setPower(SLIDE_POWER);
+        }
+        */
+    }
     public boolean slideDownOneStepAuto() {
         doRelease = false;
         int LIMIT = SLIDE_LEFT_MIN_LIMIT_BUFFER;
@@ -628,7 +675,7 @@ public class SlideArm {
             servoStatus = "Intake with Sensor Active";
             intakeTime.reset();
         } else {
-            if (intakeTime.milliseconds() > AUTO_DETECT_TIME && isKeeperBlock()) {
+            if (intakeTime.milliseconds() > AUTO_DETECT_TIME ){ //&& isKeeperBlock()) {
                 leftIntake.setPower(0);
                 rightIntake.setPower(0);
                 servoStatus = "Inactive";

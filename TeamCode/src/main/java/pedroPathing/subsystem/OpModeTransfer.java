@@ -11,6 +11,7 @@ import pedroPathing.TeleOpComp.TeamColor;
 public class OpModeTransfer {
     //public static Pose2d autoPose = new Pose2d(0,0,0);
     public static Pose autoPose = new Pose(0.0,0.0,0.0);
-    public static TeamColor autoColor = TeamColor.TEAM_RED;
+    //public static TeamColor autoColor = TeamColor.TEAM_RED;
+    public static TeamColor autoColor = null;
 
 }
