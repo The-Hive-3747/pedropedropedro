@@ -12,6 +12,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.openftc.easyopencv.PipelineRecordingParameters;
+
 import pedroPathing.TeleOpComp;
 import pedroPathing.TeleOpComp.SampleColor;
 
@@ -27,6 +29,7 @@ public class SlideArm {
     private DcMotor pivotMotor = null;
     private DcMotor leftSlideMotor = null;
     private DcMotor rightSlideMotor = null;
+    private DcMotor pivotEncoder = null;
     private HardwareMap hardwareMap = null;
     private Telemetry telemetry = null;
     private ElapsedTime intakeTime = new ElapsedTime();
@@ -38,9 +41,10 @@ public class SlideArm {
     private boolean sleepStarted = false;
     private boolean pivotUpRequested = false;
     private boolean pivotDownRequested = false;
+    private boolean pivotIsResting = true;
     public boolean hangRequested = false;
     public boolean unzeroed = false;
-    //public boolean firstHangRequested = false;
+    public boolean firstHangRequested = false;
     private boolean doRelease = false;
     private boolean isHolding = false;
     private String servoStatus = "";
@@ -49,21 +53,24 @@ public class SlideArm {
     private PivotState pivotPosition = PivotState.DOWN;
     private WristState wristPosition = WristState.READY;
     //public static int PIVOT_ENTER_POSITION = 400; //200;
-    public static int PIVOT_UP_POSITION = 740;//776;//1400; //1500; //1350; //1245; measured on old motor//1031 actual;//335
+    public static int PIVOT_UP_POSITION = 890;//930;//740;//776;//1400; //1500; //1350; //1245; measured on old motor//1031 actual;//335
     public static int PIVOT_DOWN_POSITION = 2;
+    public static int PIVOT_THROUGHBORE_DOWN_POSITION = 6;
+    public static int PIVOT_THROUGHBORE_THRESHOLD = 10;
+    public static int PIVOT_THROUGHBORE_UP_MAX = 2220;
     public static int PIVOT_HANG_POSITION = 594; //514; //491; //590; //710; //680; //590; //610;//490;//1145; //1140; //1284;
     public static int PIVOT_DOWN_WHILE_HANG = 466;
     public static int PIVOT_DOWN_FOR_HANG = 390;
-    public static double PIVOT_POWER_UP = 0.7; //0.6; //0.7;
+    public static double PIVOT_POWER_UP = 0.95;//0.85; //0.6; //0.7;
     public static double PIVOT_POWER_ENTER_UP = 0.6;
     public static double PIVOT_POWER_DOWN = 0.3; //0.7; //0.05;
     public static double PIVOT_POWER_LIFT_BODY = 0.8;
     public static double PIVOT_HANG_POWER = 0.8;
-    //public static int PIVOT_FIRST_HANG = 434;
+    public static int PIVOT_FIRST_HANG = 434;
     public static int PIVOT_UP_THRESHOLD = 590; //900;
     public static int PIVOT_TOLERANCE = 15;
     public static int PIVOT_AUTO_TOLERANCE = 450; //200;
-    public static double PIVOT_POWER_HOLD = 0.3; //0.2;
+    public static double PIVOT_POWER_HOLD = 0.3;//0.3; //0.2;
     public static double SLIDE_POWER_TEST = 0.1;
     public static double SLIDE_POWER = 0.9;//0.2;nex
     public static double SLIDE_POWER_RELEASE = 0.1;
@@ -75,14 +82,14 @@ public class SlideArm {
     public static int SLIDE_HANG_NEGATIVE_TICKS = -1700;
     public static int SLIDE_LEFT_HORIZ_LEGAL_LIMIT_TICKS = 1008; //1240; //844; //967; //1033;//1444; //1372; //1472;//2027;
     public static int SLIDE_RIGHT_HORIZ_LEGAL_LIMIT_TICKS = 1008; //844; //967; //1033; //1444; //1372; //1472;//2027;
-    public static int SLIDE_LEFT_HEIGHT_SCORE_TICKS = 1936; //3568;
-    public static int SLIDE_RIGHT_HEIGHT_SCORE_TICKS = 1936; //3569;
+    public static int SLIDE_LEFT_HEIGHT_SCORE_TICKS = 2250;//1936; //3568;
+    public static int SLIDE_RIGHT_HEIGHT_SCORE_TICKS = 2250;//1936; //3569;
     public static int SLIDE_LEFT_HANG_LIMIT = 2200;//2319;//3962;
     public static int SLIDE_RIGHT_HANG_LIMIT = SLIDE_LEFT_HANG_LIMIT;//3967;
     public static int SLIDE_LEFT_HANG_HEIGHT = 50; //410; //810;//1450;old hang for 312 motor
     public static int SLIDE_RIGHT_HANG_HEIGHT = 50; //410; //810;//1450;old hang for 312 motor
-    //public static int SLIDE_LEFT_FIRST_HANG_HEIGHT = 351;//369;
-    //public static int SLIDE_RIGHT_FIRST_HANG_HEIGHT = 351;
+    public static int SLIDE_LEFT_FIRST_HANG_HEIGHT = 351;//369;
+    public static int SLIDE_RIGHT_FIRST_HANG_HEIGHT = 351;
     public static int SLIDE_LEFT_MIN_LIMIT_BUFFER = 50; //10;
     public static int SLIDE_BACK_MIN_LIMIT_BUFFER=10;
     public static int SLIDE_FRONT_STOP_TICKS = SLIDE_LEFT_HEIGHT_SCORE_TICKS;
@@ -130,6 +137,8 @@ public class SlideArm {
         telemetry.addData("Slide arm status", "initializing");
 
         pivotMotor = hardwareMap.get(DcMotor.class,"pivot_motor");
+        //pivotMotorEncoder = hardwareMap.get();
+        pivotEncoder = hardwareMap.get(DcMotor.class, "right_front");
         leftSlideMotor = hardwareMap.get(DcMotor.class,"left_slide_motor" );
         rightSlideMotor = hardwareMap.get(DcMotor.class, "right_slide_motor");
         leftIntake = hardwareMap.get(CRServo.class, "intake_left");
@@ -137,10 +146,12 @@ public class SlideArm {
         intakeColor = hardwareMap.get(RevColorSensorV3.class, "intake_color");
         wrist = hardwareMap.get(ServoImplEx.class, "wrist");
 
+
         if (resetMotors){
             pivotMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
             leftSlideMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
             rightSlideMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            pivotEncoder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         }
 
         //pivotMotor.setTargetPosition(0);
@@ -154,7 +165,7 @@ public class SlideArm {
         leftSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         //TODO: set polarity of motors
-        pivotMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        //pivotMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         rightIntake.setDirection(DcMotor.Direction.REVERSE);
         rightSlideMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
@@ -168,9 +179,10 @@ public class SlideArm {
             pivotMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             pivotMotor.setPower(PIVOT_POWER_HOLD);
         }
-        if (pivotDownRequested && pivotMotor.getCurrentPosition() -PIVOT_TOLERANCE < PIVOT_DOWN_POSITION ) {
+        if (pivotDownRequested && pivotEncoder.getCurrentPosition() -PIVOT_THROUGHBORE_THRESHOLD < PIVOT_THROUGHBORE_DOWN_POSITION ) {
             telemetry.addData("PivotDown", "Completed");
             pivotDownRequested = false;
+            pivotIsResting = true;
             pivotMotor.setPower(0);
         }
         if (isHolding
@@ -207,10 +219,15 @@ public class SlideArm {
         leftSlideMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightSlideMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         pivotMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        pivotEncoder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
     }
     public void pivotHang(){
         //firstHangRequested = true;
         hangRequested = true;
+        if (pivotIsResting){
+            pivotMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        }
+        pivotIsResting = false;
         pivotMotor.setTargetPosition(PIVOT_HANG_POSITION);
         pivotMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         pivotMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -263,6 +280,7 @@ public class SlideArm {
         pivotMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
+
     public void stopHang() {
         hangRequested = false;
         leftSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -272,7 +290,7 @@ public class SlideArm {
         rightSlideMotor.setPower(0);
         leftSlideMotor.setPower(0);
     }
-/*
+
     public void firstHangHold(){
         if (!firstHangRequested){
             return;
@@ -284,7 +302,7 @@ public class SlideArm {
         leftSlideMotor.setPower(SLIDE_POWER_HANG_HOLD);
         rightSlideMotor.setPower(SLIDE_POWER_HANG_HOLD);
     }
-    */
+
 
     public void hangRelease(){
         if (!hangRequested) {// && !firstHangRequested){
@@ -319,6 +337,10 @@ public class SlideArm {
 //            case GATHER:
 //            case UP:
                 hangRequested = false;
+                if (pivotIsResting){
+                    pivotMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                }
+                pivotIsResting = false;
                 pivotPosition = PivotState.UP;
                 pivotMotor.setTargetPosition(PIVOT_UP_POSITION);
                 pivotMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -401,14 +423,18 @@ public class SlideArm {
     public boolean isSlideUpFull(){
         return leftSlideMotor.getCurrentPosition() >= SLIDE_LEFT_HEIGHT_SCORE_TICKS-SLIDE_TOLERANCE;
     }
-    /*
+
     public void firstPivot(){
+        if (pivotIsResting){
+            pivotMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        }
+        pivotIsResting = false;
         pivotMotor.setTargetPosition(PIVOT_FIRST_HANG);
         pivotMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         pivotMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         pivotMotor.setPower(PIVOT_HANG_POWER);
     }
-*/
+
     public void makeLimp() {
         pivotMotor.setPower(0);
         rightSlideMotor.setPower(0);
@@ -813,11 +839,15 @@ public class SlideArm {
                 LUMINANCE_GREEN*intakeColor.green()+LUMINANCE_BLUE*intakeColor.blue());
     }
 
+    public double getPivotPosition(){
+        return pivotEncoder.getCurrentPosition();
+    }
 
     public void addSlideTelemetry(){
         telemetry.addData("Left Slide Ticks", leftSlideMotor.getCurrentPosition());
         telemetry.addData("Right Slide Ticks", rightSlideMotor.getCurrentPosition());
         telemetry.addData("Pivot Ticks", pivotMotor.getCurrentPosition());
+        telemetry.addData("Throughbore Pivot Ticks", pivotEncoder.getCurrentPosition());
         telemetry.addData("PivotUpRequested", pivotUpRequested);
         telemetry.addData("PivotDownRequested", pivotDownRequested);
     }

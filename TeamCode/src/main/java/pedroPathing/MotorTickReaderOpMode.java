@@ -26,6 +26,7 @@ public class MotorTickReaderOpMode extends LinearOpMode {
     private DcMotor leftSlideMotor = null;
     private DcMotor rightSlideMotor = null;
     private DcMotor rightShoulder = null;
+    private DcMotor pivotEncoder = null;
     //private HardwareMap hardwareMap = null;
     //private Telemetry telemetry = null;
     private CRServo leftIntake = null;
@@ -60,6 +61,7 @@ public class MotorTickReaderOpMode extends LinearOpMode {
         leftSlideMotor = hardwareMap.get(DcMotor.class,"left_slide_motor" );
         rightSlideMotor = hardwareMap.get(DcMotor.class, "right_slide_motor");
         rightShoulder = hardwareMap.get(DcMotor.class, "right_shoulder");
+        pivotEncoder = hardwareMap.get(DcMotor.class, "right_front");
         leftIntake = hardwareMap.get(CRServo.class, "intake_left");
         rightIntake = hardwareMap.get(CRServo.class, "intake_right");
         intakeColor = hardwareMap.get(RevColorSensorV3.class, "intake_color");
@@ -69,6 +71,7 @@ public class MotorTickReaderOpMode extends LinearOpMode {
         leftSlideMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightSlideMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightShoulder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        pivotEncoder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
 
 
@@ -77,7 +80,7 @@ public class MotorTickReaderOpMode extends LinearOpMode {
         rightSlideMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         rightShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         //TODO: set polarity of motors
-        pivotMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        //pivotMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         leftIntake.setDirection(DcMotor.Direction.REVERSE);
         rightSlideMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         rightShoulder.setDirection(DcMotor.Direction.REVERSE);
@@ -114,6 +117,7 @@ public class MotorTickReaderOpMode extends LinearOpMode {
             telemetry.addData("Left Slide Ticks", leftSlideMotor.getCurrentPosition() );
             telemetry.addData("Right Slide Ticks", rightSlideMotor.getCurrentPosition());
             telemetry.addData("Pivot Motor Ticks", pivotMotor.getCurrentPosition());
+            telemetry.addData("Throughbore Pivot Ticks",pivotEncoder.getCurrentPosition());
             telemetry.addData("Right Shoulder Ticks", rightShoulder.getCurrentPosition());
             telemetry.addData("Wrist Ticks", wrist.getPosition());
             telemetry.addData("Color Distance (cm)", intakeColor.getDistance(DistanceUnit.CM));

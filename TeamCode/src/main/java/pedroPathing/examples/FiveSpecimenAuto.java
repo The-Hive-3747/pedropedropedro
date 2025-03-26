@@ -48,7 +48,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
         return new PathBuilder()
                 .addPath(new BezierLine(
                         new Point(8, 61.5, Point.CARTESIAN),
-                        new Point(37, 75, Point.CARTESIAN)))
+                        new Point(37, 75, Point.CARTESIAN))) //75
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
     }
@@ -226,7 +226,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
         @Override
         public void execute() {
             if (!followerStarted) {
-                follower.followPath(preload());
+                follower.followPath(preload(), 1.0,true);
                 pathState = "score preload";
                 followerStarted = true;
             }
@@ -443,8 +443,8 @@ public class FiveSpecimenAuto extends LinearOpMode {
                         specimenArm.new doAutoClawStateOpen(),
                         specimenArm.new SpecimenArmCollect()
                                 .alongWith(
-                                    this.new FollowPickup2Specimen()
-                                ), // PICKUP SECOND SAMPLE
+                                    this.new FollowPickup2Specimen() // PICKUP SECOND SAMPLE
+                                ),
                         specimenArm.new doAutoClawStateClose(),
 
                         specimenArm.new SpecimenArmEnter()
@@ -456,8 +456,8 @@ public class FiveSpecimenAuto extends LinearOpMode {
                         specimenArm.new doAutoClawStateOpen(),
                         specimenArm.new SpecimenArmCollect()
                                 .alongWith(
-                                    this.new FollowPickup3Specimen()
-                                ), // pickup third sample
+                                    this.new FollowPickup3Specimen() // pickup third sample
+                                ),
                         specimenArm.new doAutoClawStateClose(),
 
                         specimenArm.new SpecimenArmEnter()
@@ -470,8 +470,8 @@ public class FiveSpecimenAuto extends LinearOpMode {
                         specimenArm.new SpecimenArmCollect()
                                 .alongWith(
 
-                                    this.new FollowPickup4Specimen()
-                                ), // pickup fourth sample
+                                    this.new FollowPickup4Specimen() // pickup fourth sample
+                                ),
                         specimenArm.new doAutoClawStateClose(),
                         new ParallelCommandGroup(
                                 specimenArm.new SpecimenArmEnter(),

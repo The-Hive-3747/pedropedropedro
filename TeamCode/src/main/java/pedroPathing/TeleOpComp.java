@@ -37,8 +37,8 @@ public class TeleOpComp extends LinearOpMode {
     public static double RUMBLE_HANG_TIME_OUT_END = 95.0;
     public static double RUMBLE_HANG_TIME2_OUT = 105.0;
     public static double RUMBLE_HANG_TIME2_OUT_END = 110.0;
-    public static double FLASH_LIGHT2_SECONDS = 0.5;
-    public static double FLASH_LIGHT_SECONDS = 1.0;
+    public static double FLASH_LIGHT2_SECONDS = 0.25;
+    public static double FLASH_LIGHT_SECONDS = 0.5;
     public static Stack<Double> battery_checker = new Stack<>();
     private boolean slideWasRetract = false;
     private boolean slideWasExtend = false;
@@ -387,16 +387,16 @@ public class TeleOpComp extends LinearOpMode {
                 if (gamepad2.left_trigger <= LEFT_TRIGGER_THRESHOLD && wristChangeRequested) {
                     wristChangeRequested = false;
                 }
-                /*
+
                 if (gamepad1.a) {
                     //TODO Use Normal hang hold
                     slideArm.firstHangHold();
                 }
                 if (gamepad1.dpad_right){
                     //TODO Use Normal Pivot
+                    slideArm.firstHangRequested = true;
                     slideArm.firstPivot();
                 }
-                */
                 if (gamepad1.b) {
                     follower.setPose(startPose);
                 }
