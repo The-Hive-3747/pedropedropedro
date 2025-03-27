@@ -1,16 +1,28 @@
 package pedroPathing;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
+import pedroPathing.constants.FConstants;
+import pedroPathing.constants.LConstants;
+import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.SlideArm;
 import pedroPathing.subsystem.SpecimenArm;
 
 @TeleOp(name="TeleOpHangTest")
 @Config
 public class TeleOpHangTest extends LinearOpMode{
+
+    public static double speedMultiplier = 0.5;
+    public static double strafeBiasLeft = -0.045;
+    public static double strafeBiasRight = -0.033;
+    public static double strafeBiasForward = 0.0;//-0.05;
+    public static double strafeBiasBackward = 0.0;//-0.05;
+    public static double HIGH_SPEED_THRESHOLD = 0.8;
+    public static double LOW_SPEED_THRESHOLD = 0.1;
     private SpecimenArm specimenArm = null;
     private SlideArm slideArm = null;
     private DcMotor pivotMotor = null;
@@ -37,9 +49,14 @@ public class TeleOpHangTest extends LinearOpMode{
     public static int PIVOT_TOLERANCE = 15;
     public static int PIVOT_DOWN_POSITION = 2;
     public static double PIVOT_POWER_UP = 0.7; //0.6; //0.7;
-    public static int PIVOT_UP_POSITION = 740;//776;//1400; //1500; //1350; //1245; measured on old motor//1031 actual;//335
+    public static double PIVOT_POWER_HANG = 1;
+    public static int PIVOT_DOWN_HANG_POSITION = 0;//776;//1400; //1500; //1350; //1245; measured on old motor//1031 actual;//335
+    public static int PIVOT_HANG_POSITION = 400;
+    public static int PIVOT_HANG_UP_POSITION = 740;
     public static int SLIDE_NO_DOWN_TICKS = 1000;
     public static double PIVOT_POWER_DOWN = 0.3; //0.7; //0.05;
+
+    private Follower follower;
     @Override
     public void runOpMode() throws InterruptedException{
         specimenArm = new SpecimenArm(hardwareMap, telemetry, false);
@@ -47,8 +64,13 @@ public class TeleOpHangTest extends LinearOpMode{
         pivotMotor = hardwareMap.get(DcMotor.class,"pivot_motor");
         leftSlideMotor = hardwareMap.get(DcMotor.class,"left_slide_motor" );
         rightSlideMotor = hardwareMap.get(DcMotor.class, "right_slide_motor");
+        follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
+        follower.setStartingPose(OpModeTransfer.autoPose);
 
         waitForStart();
+
+        slideArm.setWristToStow();
+        follower.startTeleopDrive();
         while (opModeIsActive()) {
 
             if (gamepad2.dpad_left) {
@@ -160,11 +182,34 @@ public class TeleOpHangTest extends LinearOpMode{
                 //slideArm.scoreAuto();
                 hangRequested = false;
                 pivotPosition = SlideArm.PivotState.UP;
-                pivotMotor.setTargetPosition(PIVOT_UP_POSITION);
+                pivotMotor.setTargetPosition(PIVOT_HANG_UP_POSITION);
                 pivotMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 pivotMotor.setPower(PIVOT_POWER_UP);
                 pivotUpRequested = true;
 
+            }
+            if (gamepad2.a) {
+                    /*telemetry.addData("Status", "Pivoting Up");
+                    pivotTimer.reset();
+                    specimenArm.clawStateClose();
+                    slideArm.pivotUp();*/
+                slideWasAutoExtend = true;
+                //slideArm.scoreAuto();
+                hangRequested = false;
+                pivotMotor.setTargetPosition(PIVOT_DOWN_HANG_POSITION);
+                pivotMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                pivotMotor.setPower(PIVOT_POWER_HANG);
+                pivotUpRequested = true;
+
+            }
+            if (gamepad2.b) {
+                slideWasAutoExtend = true;
+                hangRequested = true;
+                pivotPosition = SlideArm.PivotState.UP;
+                pivotMotor.setTargetPosition(PIVOT_HANG_POSITION);
+                pivotMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                pivotMotor.setPower(PIVOT_POWER_UP);
+                pivotUpRequested = true;
             }
             if (!gamepad2.y && slideWasAutoExtend) {
                 slideWasAutoExtend = false;
@@ -188,7 +233,7 @@ public class TeleOpHangTest extends LinearOpMode{
             }
             if (gamepad2.x && !wasPivoting) {
                 telemetry.addData("Status", "Pivoting Down");
-                specimenArm.clawStateClose();
+                //specimenArm.clawStateClose();
                 //slideArm.pivotDown();
                 if(getFrontSlideTicks()> SLIDE_NO_DOWN_TICKS){
                     return;
@@ -205,6 +250,32 @@ public class TeleOpHangTest extends LinearOpMode{
                 wasPivoting = false;
 
             }
+
+            double leftJoyStickSpeedY = gamepad1.left_stick_y;
+            double leftJoyStickSpeedX = gamepad1.left_stick_x;
+            double strafeBias = strafeBiasLeft;
+            double strafeBiasY = strafeBiasBackward;
+            if (Math.abs(leftJoyStickSpeedY) >= HIGH_SPEED_THRESHOLD && Math.abs(leftJoyStickSpeedX) <= LOW_SPEED_THRESHOLD) {
+                leftJoyStickSpeedX = 0;
+            }
+            if (Math.abs(leftJoyStickSpeedX) >= HIGH_SPEED_THRESHOLD && Math.abs(leftJoyStickSpeedY) <= LOW_SPEED_THRESHOLD) {
+                leftJoyStickSpeedY = 0;
+            }
+            if (leftJoyStickSpeedX>0 ) {
+                strafeBias = strafeBiasRight;
+            }
+            if (leftJoyStickSpeedY>0) {
+                strafeBias = strafeBiasForward;
+            }
+
+            follower.setTeleOpMovementVectors(
+                    -leftJoyStickSpeedY*speedMultiplier,
+                    -leftJoyStickSpeedX*speedMultiplier,
+                    -gamepad1.right_stick_x*speedMultiplier +
+                            strafeBias*(-leftJoyStickSpeedX*speedMultiplier) +
+                            strafeBiasY*(-leftJoyStickSpeedX*speedMultiplier),
+                    false);
+            follower.update();
 
 
         }
