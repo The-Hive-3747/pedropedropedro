@@ -3,8 +3,10 @@ package pedroPathing;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.localization.Pose;
+import com.pedropathing.util.Drawing;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -94,6 +96,7 @@ public class TeleOpLimelight extends LinearOpMode {
     private double maxLoopTime = 0.0;
     private Follower follower;
     private final Pose startPose = new Pose(0,0,0);
+    private Pose limelightPose = new Pose(0,0,0);
     private boolean resetMotors = false;
     @Override
     public void runOpMode() throws InterruptedException {
@@ -403,6 +406,12 @@ public class TeleOpLimelight extends LinearOpMode {
 
             slideArm.update();
             specimenArm.update();
+
+            limelightPose = limelightVision.getRobotPose(follower.getPose().getHeading());
+            if (limelightPose.getX() != 0 && limelightPose.getY() != 0){
+                follower.setPose(limelightPose);
+            }
+
             if (maxLoopTime < criticalLoopTimer.milliseconds()){
                 maxLoopTime = criticalLoopTimer.milliseconds();
             }
@@ -429,6 +438,7 @@ public class TeleOpLimelight extends LinearOpMode {
                 telemetry.addData("Limelight Target Y",llResult.getTy());
                 telemetry.addData("Limelight Target Area",llResult.getTa());
             }
+            telemetry.addData("MT2 Location:", "(" + limelightPose.getX() + ", " + limelightPose.getY() + ")");
             /*telemetry.addData("Hit gamepad1.X to move shoulder","");
             telemetry.addData("Hit gamepad1.Y to move claw","");
             telemetry.addData("Hit gamepad2.B to pivot for hang","");
@@ -453,12 +463,15 @@ public class TeleOpLimelight extends LinearOpMode {
 
             // TODO: IF FTC DASHBOARD NEEDED: UNCOMMENT TELEMETRYPACKET & FTCDASHBOARD
 
-            //TelemetryPacket packet = new TelemetryPacket();
+            TelemetryPacket packet = new TelemetryPacket();
 
-            //packet.fieldOverlay().setStroke("#3F51B5");
-            //Drawing.drawRobot(packet.fieldOverlay(), drive.pose);
-
-            //FtcDashboard.getInstance().sendTelemetryPacket(packet);
+            packet.fieldOverlay().setStroke("#28F52B"); //#3F51B5
+            //packet.fieldOverlay().strokeCircle(limelightPose.getX(),limelightPose.getY(),6);
+            //Drawing.drawRobot(follower.getPose(), "BLUE");
+            //Drawing.drawDebug(follower);
+            //Drawing.sendPacket();
+            Drawing.drawRobotOnCanvas(packet.fieldOverlay(), follower.getPose());
+            FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }
     }
 

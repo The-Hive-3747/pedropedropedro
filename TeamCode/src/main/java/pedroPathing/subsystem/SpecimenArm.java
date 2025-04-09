@@ -1,5 +1,7 @@
 package pedroPathing.subsystem;
 
+import static java.lang.Thread.sleep;
+
 import android.hardware.Sensor;
 
 import com.acmerobotics.dashboard.config.Config;
@@ -31,7 +33,7 @@ public class SpecimenArm {
     private ServoImplEx leftShoulderEx = null;
     private ShoulderState shoulderPosition = ShoulderState.COLLECT;
     private ElapsedTime specimenArmTime = new ElapsedTime();
-    private ElapsedTime specimenClawTime = new ElapsedTime();
+    public ElapsedTime specimenClawTime = new ElapsedTime();
     private ElapsedTime latchTime = new ElapsedTime();
     private boolean specimenArmDone = true;
     private boolean specimenClawDone = true;
@@ -44,6 +46,7 @@ public class SpecimenArm {
     public static int R_SHOULDER_SCORE_POS = 219;//260; //235;
     public static double CLAW_OPEN = 1.00; //0.95; //0.85;
     public static double CLAW_CLOSE = 0.61; //0.25;
+    public static long CLAW_GRAB_DELAY = 100;
     public static double L_SHOULDER_STOW_POS = 0.12; //0.07;
     public static double L_SHOULDER_COLLECT_POS = 0.04;//0.05;
     public static double L_SHOULDER_ENTER_POS = 0.6;//0.55;
@@ -62,6 +65,7 @@ public class SpecimenArm {
     public static double MOVE_SPEED_TO_ENTER = 0.8;
     public static double COLLECT_SPEED =0.0;
     public static double R_SHOULDER_RESET_POWER = -0.2;
+    public static double SPECIMENCLAW_CLOSE_TIME = 50.0;
 
 
 
@@ -71,10 +75,10 @@ public class SpecimenArm {
         telemetry.addData("Specimen Arm Status", "initializing");
 
 
-        leftShoulder = hardwareMap.get(Servo.class, "left_shoulder"); // Intake: 11 even
+        //leftShoulder = hardwareMap.get(Servo.class, "left_shoulder"); // Intake: 11 even
         claw = hardwareMap.get(ServoImplEx.class, "claw");
         rightShoulder = hardwareMap.get(DcMotor.class, "right_shoulder"); // Ready: 26.75
-        leftShoulderEx = hardwareMap.get(ServoImplEx.class, "left_shoulder");
+        //leftShoulderEx = hardwareMap.get(ServoImplEx.class, "left_shoulder");
         clawSensor = hardwareMap.get(TouchSensor.class, "claw_sensor");
         //clawSensor.getConnectionInfo()
 
@@ -111,8 +115,6 @@ public class SpecimenArm {
     public void clawSensorGrab() {
         clawStateClose();
         goToSpecimenEnter();
-
-
     }
     public void nextClawState() {
             if (clawState == ClawState.OPEN) {
@@ -137,30 +139,29 @@ public class SpecimenArm {
         claw.setPwmDisable();
     }
 
+
+
     public class doAutoClawStateOpen extends CommandBase {
         boolean isDone = false;
+        boolean isClawOpen = false;
 
         public doAutoClawStateOpen() {
         }
         @Override
         public void initialize() {
             isDone = false;
+            isClawOpen = false;
         }
         @Override
         public void execute() {
-            if (specimenClawDone) {
-                specimenClawDone = false;
+            if (!isClawOpen) {
+                isClawOpen = true;
                 specimenClawTime.reset();
                 clawStateOpen();
-                isDone = false;
-                return;
             }
-            if (specimenClawTime.milliseconds() < SPECIMENCLAW_OPEN_TIME) {
-                isDone = false;
-                return;
+            if (isClawOpen && (specimenClawTime.milliseconds() > SPECIMENCLAW_OPEN_TIME)) {
+                isDone = true;
             }
-            specimenClawDone = true;
-            isDone = true;
         }
         @Override
         public boolean isFinished() {
@@ -169,28 +170,23 @@ public class SpecimenArm {
     }
     public class doAutoClawStateClose extends CommandBase {
         boolean isDone = false;
-
-        public doAutoClawStateClose() {
-        }
+        boolean isClawClose = false;
+        public doAutoClawStateClose() {}
         @Override
         public void initialize() {
             isDone = false;
+            isClawClose = false;
         }
         @Override
         public void execute() {
-            if (specimenClawDone) {
-                specimenClawDone = false;
+            if (!isClawClose) {
+                isClawClose = true;
                 specimenClawTime.reset();
                 clawStateClose();
-                isDone = false;
-                return;
             }
-            if (specimenClawTime.milliseconds() < SPECIMENCLAW_OPEN_TIME) {
-                isDone = false;
-                return;
+            if (isClawClose && (specimenClawTime.milliseconds() < SPECIMENCLAW_CLOSE_TIME)) {
+                isDone = true;
             }
-            specimenClawDone = true;
-            isDone = true;
         }
         @Override
         public boolean isFinished() {
