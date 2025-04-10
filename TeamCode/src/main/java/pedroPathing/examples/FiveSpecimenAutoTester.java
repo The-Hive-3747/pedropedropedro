@@ -16,6 +16,7 @@ import com.pedropathing.pathgen.Point;
 import com.pedropathing.pathgen.Path;
 import com.pedropathing.util.Constants;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -27,7 +28,7 @@ import pedroPathing.subsystem.IndicatorLight;
 import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.SlideArm;
 import pedroPathing.subsystem.SpecimenArm;
-
+@Disabled
 @Autonomous(name = "Five Specimen Tester")
 public class FiveSpecimenAutoTester extends LinearOpMode {
     boolean teamChangeRequested = false;

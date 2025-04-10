@@ -8,6 +8,7 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.localization.Pose;
 import com.pedropathing.util.Drawing;
 import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -22,6 +23,7 @@ import pedroPathing.subsystem.SlideArm;
 import pedroPathing.subsystem.SpecimenArm;
 import pedroPathing.subsystem.LimelightVision;
 
+@Disabled
 @TeleOp(name="TeleOpLimelight")
 @Config
 public class TeleOpLimelight extends LinearOpMode {

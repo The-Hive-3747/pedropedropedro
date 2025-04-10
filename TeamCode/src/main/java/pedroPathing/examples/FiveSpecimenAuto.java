@@ -35,6 +35,7 @@ import pedroPathing.subsystem.SpecimenArm;
 public class FiveSpecimenAuto extends LinearOpMode {
     boolean teamChangeRequested = false;
     private ElapsedTime criticalLoop= new ElapsedTime();
+    private ElapsedTime touchLightTimer = new ElapsedTime();
     TeleOpComp.TeamColor HIVE_COLOR = TeleOpComp.TeamColor.TEAM_BLUE;
     public String pathState = null;
     private SlideArm slideArm = null;
@@ -47,12 +48,16 @@ public class FiveSpecimenAuto extends LinearOpMode {
     private DcMotor rightBack = null;
     private double DRIVE_POWER = 0.3;
     private boolean isPreload = false;
+    private boolean touchSensorHit = false;
     private Pose limelightPose = null;
     public static Pose startPose = new Pose(8,61.5, Math.toRadians(0));
     private LimelightVision limelightVision;
     private Telemetry telemetryA;
     private static TelemetryPacket packet;
     private double PUSH_SAMPLES_X_BARRIER = 25;
+    private int TOUCH_SENSOR_TIMER_FLASH_TIME = 1000;
+    private long TIME_CLAW_WAIT = 200;
+    private boolean backupUsed = false;
 
     private Follower follower;
 
@@ -68,34 +73,35 @@ public class FiveSpecimenAuto extends LinearOpMode {
         return new PathBuilder()
                 .addPath(new BezierCurve( // after place, goes to first sample
                         new Point(38.5, 83, Point.CARTESIAN),
-                        new Point(0.7, 43.8, Point.CARTESIAN),
-                        new Point(54, 28, Point.CARTESIAN)))
+                        new Point(0.7, 43.8, Point.CARTESIAN), //x:0.7 y:43.8
+                        new Point(50.0, 28, Point.CARTESIAN))) //x:53.5, y:28
                 .setLinearHeadingInterpolation(Math.toRadians(5), Math.toRadians(0))
                 .addPath(new BezierLine( // pushes first sample
-                        new Point(54, 28, Point.CARTESIAN),
+                        new Point(50.0, 28, Point.CARTESIAN),//x:53.5, y:28
                         new Point(25, 23, Point.CARTESIAN))) //21
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine( // goes to second sample
                         new Point(25, 23, Point.CARTESIAN),
-                        new Point(48, 23, Point.CARTESIAN))) //22
+                        new Point(46.5, 23, Point.CARTESIAN))) //22 //x:47.5 royd
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierCurve( // pushes second sample
-                        new Point(48, 23, Point.CARTESIAN),
+                        new Point(47.5, 23, Point.CARTESIAN),
                         new Point(60, 9, Point.CARTESIAN),
                         new Point(25, 11, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine( // goes to third sample
                         new Point(25, 11, Point.CARTESIAN),
-                        new Point(48, 10, Point.CARTESIAN)))
+                        new Point(44.5, 10, Point.CARTESIAN))) //x:48, y:10 //x:47 royd
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierCurve( // pushes third sample
-                        new Point(48, 10, Point.CARTESIAN), // change this y if the robot is hitting the wall at the beginning of the path
+                        new Point(44.5, 10, Point.CARTESIAN), //x:48, y:10// change this y if the robot is hitting the wall at the beginning of the path
                         new Point(70, 7, Point.CARTESIAN), //6.2 /  0.6 / change this y if the robot is hitting the wall at the middle of the path
                         new Point(20, 5, Point.CARTESIAN))) // change this y if the robot is hitting the wall at the end of the path
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine(
                         new Point(20,5,Point.CARTESIAN),
-                        new Point(14,5, Point.CARTESIAN)
+                        new Point(15.5
+                                ,5, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
@@ -103,7 +109,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
     public static PathChain score1Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(14, 5, Point.CARTESIAN),
+                        new Point(15.5, 5, Point.CARTESIAN),
                         new Point(12, 70, Point.CARTESIAN),
                         new Point(39, 76, Point.CARTESIAN)
                 ))
@@ -117,12 +123,12 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 .addPath(new BezierCurve(
                         new Point(39, 76, Point.CARTESIAN),
                         new Point(31, 73, Point.CARTESIAN),
-                        new Point(20, 44, Point.CARTESIAN)
+                        new Point(20, 45, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine(
-                        new Point(20, 44, Point.CARTESIAN),
-                        new Point(14, 42, Point.CARTESIAN)
+                        new Point(20, 45, Point.CARTESIAN),
+                        new Point(15.5, 42, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 //.setZeroPowerAccelerationMultiplier(2)
@@ -132,7 +138,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
     public static PathChain score2Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(14, 42, Point.CARTESIAN),
+                        new Point(15.5, 42, Point.CARTESIAN),
                         new Point(15, 60, Point.CARTESIAN),
                         new Point(39, 74, Point.CARTESIAN)
                 ))
@@ -144,12 +150,12 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 .addPath(new BezierCurve(
                         new Point(39, 74, Point.CARTESIAN), // 38.3
                         new Point(31, 73, Point.CARTESIAN),
-                        new Point(20, 44, Point.CARTESIAN)
+                        new Point(20, 45, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine(
-                        new Point(20, 44, Point.CARTESIAN),
-                        new Point(14, 42, Point.CARTESIAN)
+                        new Point(20, 45, Point.CARTESIAN),
+                        new Point(15.5, 42, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
@@ -157,7 +163,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
     public static PathChain score3Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(14, 42, Point.CARTESIAN),
+                        new Point(15.5, 42, Point.CARTESIAN),
                         new Point(15, 70, Point.CARTESIAN),
                         new Point(39, 72, Point.CARTESIAN) // 38
                 ))
@@ -169,12 +175,12 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 .addPath(new BezierCurve(
                         new Point(39, 72, Point.CARTESIAN),
                         new Point(31, 73, Point.CARTESIAN),
-                        new Point(20, 44, Point.CARTESIAN)
+                        new Point(20, 45, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine(
-                        new Point(20, 44, Point.CARTESIAN),
-                        new Point(14, 42, Point.CARTESIAN)
+                        new Point(20, 45, Point.CARTESIAN),
+                        new Point(15.5, 42, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
@@ -182,7 +188,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
     public static PathChain score4Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(14, 42, Point.CARTESIAN),
+                        new Point(15.5, 42, Point.CARTESIAN),
                         new Point(15, 70, Point.CARTESIAN),
                         new Point(39, 70, Point.CARTESIAN) // 68.5 y70 x38
                 ))
@@ -437,6 +443,8 @@ public class FiveSpecimenAuto extends LinearOpMode {
         public void execute() {
             if (specimenArm.clawSensor.isPressed() && !isPressed && follower.getPose().getX() < PUSH_SAMPLES_X_BARRIER) {
                 isPressed = true;
+                touchSensorHit = true;
+                touchLightTimer.reset();
                 //clawStateClose();
             }
             if (isPressed && !isClawClose) {
@@ -444,7 +452,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 specimenArm.specimenClawTime.reset();
                 specimenArm.clawStateClose();
             }
-            if (isPressed && (specimenArm.specimenClawTime.milliseconds() > specimenArm.SPECIMENCLAW_CLOSE_TIME)) {
+            if (isClawClose && (specimenArm.specimenClawTime.milliseconds() > specimenArm.SPECIMENCLAW_CLOSE_TIME)) {
                 isDone = true;
             }
         }
@@ -452,6 +460,14 @@ public class FiveSpecimenAuto extends LinearOpMode {
         @Override
         public boolean isFinished() {
             return isDone;
+        }
+        @Override
+        public void end(boolean interrupted) {
+            if(interrupted) {
+                touchLightTimer.reset();
+                backupUsed = true;
+                specimenArm.clawStateClose();
+            }
         }
     }
     @Override
@@ -493,7 +509,9 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                     this.new FollowPushSamples(),
                                     this.new closeClawUsingSensor()
                                 ).withTimeout(10000) // TODO: make this smart
-                        ), // PUSH SAMPLES
+                        ),
+                        new WaitCommand(TIME_CLAW_WAIT),
+                        // PUSH SAMPLES
 
                         //specimenArm.new doAutoClawStateClose(),
 
@@ -512,6 +530,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                     this.new closeClawUsingSensor()
                                 )
                         ),
+                        new WaitCommand(TIME_CLAW_WAIT),
                         //specimenArm.new doAutoClawStateClose(),
 
                         specimenArm.new SpecimenArmEnter()
@@ -528,6 +547,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                         this.new closeClawUsingSensor()
                                 )
                         ),
+                        new WaitCommand(TIME_CLAW_WAIT),
                         //specimenArm.new doAutoClawStateClose(),
 
                         specimenArm.new SpecimenArmEnter()
@@ -544,6 +564,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                         this.new closeClawUsingSensor()
                                 )
                         ),
+                        new WaitCommand(TIME_CLAW_WAIT),
                         //specimenArm.new doAutoClawStateClose(),
                         new ParallelCommandGroup(
                                 specimenArm.new SpecimenArmEnter(),
@@ -582,11 +603,12 @@ public class FiveSpecimenAuto extends LinearOpMode {
         /*telemetryA = new MultipleTelemetry(this.telemetry, FtcDashboard.getInstance().getTelemetry());
         telemetryA.addLine("wow");
         telemetryA.update();*/
+        slideArm.derailShiftDown();
         waitForStart();
+        slideArm.derailRelax();
 
         slideArm.slideBrakes();
-        leftLight.setColor(IndicatorLight.COLOR_BEECON);
-        rightLight.setColor(IndicatorLight.COLOR_BEECON);
+
         while (opModeIsActive()) {
             follower.update();
             //slideArm.update();
@@ -607,6 +629,25 @@ public class FiveSpecimenAuto extends LinearOpMode {
             scheduler.run();
             criticalLoop.reset();
             Drawing.drawDebug(follower);
+
+            if (touchSensorHit) {
+                if (TOUCH_SENSOR_TIMER_FLASH_TIME < touchLightTimer.milliseconds()) {
+                    touchSensorHit = false;
+                }
+                rightLight.setColor(IndicatorLight.COLOR_GREEN);
+                leftLight.setColor(IndicatorLight.COLOR_BEECON);
+            }
+            else if (backupUsed) {
+                if (TOUCH_SENSOR_TIMER_FLASH_TIME < touchLightTimer.milliseconds()) {
+                    backupUsed = false;
+                }
+                rightLight.setColor(IndicatorLight.COLOR_RED);
+                leftLight.setColor(IndicatorLight.COLOR_BEECON);
+            }
+            else {
+                leftLight.setColor(IndicatorLight.COLOR_BEECON);
+                rightLight.setColor(IndicatorLight.COLOR_BEECON);
+            }
 
 
 

@@ -7,11 +7,12 @@ import pedroPathing.subsystem.SpecimenArm;
 import pedroPathing.subsystem.IndicatorLight;
 
 import com.arcrobotics.ftclib.command.CommandScheduler;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-//@Disabled
+@Disabled
 @TeleOp(name="test file")
 public class teleOpTest extends LinearOpMode {
     private SpecimenArm specimenArm = null;

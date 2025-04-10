@@ -2,6 +2,7 @@ package pedroPathing;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.pedropathing.follower.Follower;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -16,6 +17,7 @@ import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.SlideArm;
 import pedroPathing.subsystem.SpecimenArm;
 
+@Disabled
 @TeleOp(name="TeleOpDerailerTest")
 @Config
 public class TeleOpDerailerTest extends LinearOpMode{

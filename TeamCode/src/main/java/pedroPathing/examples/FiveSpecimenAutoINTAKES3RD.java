@@ -28,7 +28,7 @@ import pedroPathing.subsystem.IndicatorLight;
 import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.SlideArm;
 import pedroPathing.subsystem.SpecimenArm;
-//@Disabled
+@Disabled
 @Autonomous(name = "FiveSpecimenAutoINTAKES3RD")
 public class FiveSpecimenAutoINTAKES3RD extends LinearOpMode {
     boolean teamChangeRequested = false;

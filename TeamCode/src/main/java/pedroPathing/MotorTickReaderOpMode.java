@@ -17,6 +17,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import pedroPathing.subsystem.IndicatorLight;
+import pedroPathing.subsystem.SlideArm;
 import pedroPathing.subsystem.SpecimenArm;
 
 @TeleOp(name="MotorTickReaderOpMode")
@@ -47,6 +48,10 @@ public class MotorTickReaderOpMode extends LinearOpMode {
     private static double LUMINANCE_PB = 0.564;
     public static double LUMINANCE_PR = 0.713;
     private boolean increasing_color = true;
+    private boolean hasTensioned = false;
+    private boolean hasDownTensioned = false;
+
+    private SlideArm slideArm;
     @Override
     public void runOpMode() throws InterruptedException {
 
@@ -66,6 +71,7 @@ public class MotorTickReaderOpMode extends LinearOpMode {
         rightIntake = hardwareMap.get(CRServo.class, "intake_right");
         intakeColor = hardwareMap.get(RevColorSensorV3.class, "intake_color");
         wrist = hardwareMap.get(Servo.class, "wrist");
+        slideArm = new SlideArm(hardwareMap, telemetry, true);
 
         pivotMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftSlideMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -95,6 +101,92 @@ public class MotorTickReaderOpMode extends LinearOpMode {
         rightLight.setColor(IndicatorLight.COLOR_BEECON);
 
         while (opModeIsActive()) {
+            if (gamepad2.a) {
+                slideArm.derailShiftFirst();
+            }
+            if (gamepad1.a) {
+                slideArm.derailShiftFirst();
+            }
+            if ((gamepad2.dpad_down && gamepad2.b)){
+                slideArm.stopTensioning();
+                slideArm.tensionRightSlide = true;
+                slideArm.tensionSlidesIndividual();
+                hasTensioned = true;
+            }
+            if ((gamepad2.dpad_down && gamepad2.b)){
+                slideArm.stopTensioning();
+                slideArm.tensionRightSlide = true;
+                slideArm.tensionSlidesIndividual();
+                hasTensioned = true;
+            }
+            if ((gamepad2.dpad_up && gamepad2.b)) {
+                slideArm.stopTensioning();
+                slideArm.tensionRightSlide = false;
+                slideArm.tensionSlidesIndividual();
+                hasTensioned = true;
+            }
+            if ((gamepad1.dpad_up && gamepad1.b)) {
+                slideArm.stopTensioning();
+                slideArm.tensionRightSlide = false;
+                slideArm.tensionSlidesIndividual();
+                hasTensioned = true;
+            }
+            if ((gamepad2.b && !gamepad2.dpad_down && !gamepad2.dpad_up)) {
+                slideArm.tensionSlidesManual();
+                hasTensioned = true;
+            }
+            if ((gamepad1.b && !gamepad1.dpad_down && !gamepad1.dpad_up)) {
+                slideArm.tensionSlidesManual();
+                hasTensioned = true;
+            }
+            if ((!gamepad1.b && hasTensioned)){
+                slideArm.stopTensioning();
+                hasTensioned = false;
+            }
+            if ((!gamepad2.b && hasTensioned)){
+                slideArm.stopTensioning();
+                hasTensioned = false;
+            }
+            if ((gamepad1.dpad_down && gamepad1.y)) {
+                slideArm.stopTensioning();
+                slideArm.loosenRightSlide = true;
+                slideArm.loosenSlidesIndividual();
+                hasDownTensioned = true;
+            }
+            if ((gamepad2.dpad_down && gamepad2.y)) {
+                slideArm.stopTensioning();
+                slideArm.loosenRightSlide = true;
+                slideArm.loosenSlidesIndividual();
+                hasDownTensioned = true;
+            }
+            if((gamepad2.dpad_up && gamepad2.y)) {
+                slideArm.stopTensioning();
+                slideArm.loosenRightSlide = false;
+                slideArm.loosenSlidesIndividual();
+                hasDownTensioned = true;
+            }
+            if((gamepad1.dpad_up && gamepad1.y)) {
+                slideArm.stopTensioning();
+                slideArm.loosenRightSlide = false;
+                slideArm.loosenSlidesIndividual();
+                hasDownTensioned = true;
+            }
+            if ((gamepad2.y && !gamepad2.dpad_down && !gamepad2.dpad_up)) {
+                slideArm.loosenSlidesManual();
+                hasDownTensioned = true;
+            }
+            if ((gamepad1.y && !gamepad1.dpad_down && !gamepad1.dpad_up)) {
+                slideArm.loosenSlidesManual();
+                hasDownTensioned = true;
+            }
+            if ((!gamepad2.y && hasDownTensioned)) {
+                slideArm.stopTensioning();
+                hasDownTensioned = false;
+            }
+            if ((!gamepad1.y && hasDownTensioned)) {
+                slideArm.stopTensioning();
+                hasDownTensioned = false;
+            }
 
             if (colortimer.milliseconds() > COLOR_TIME_THRESHOLD) {
                 if (increasing_color) {
@@ -114,6 +206,12 @@ public class MotorTickReaderOpMode extends LinearOpMode {
 
             leftLight.setColor(color);
             rightLight.setColor(color);
+            telemetry.addData("Gamepad2 b", "Tension");
+            telemetry.addData("Gamepad2 b & dpad down / dpad up", "Tension right slide / left slide");
+            telemetry.addData("Gamepad2 y", "loosen tensioner");
+            telemetry.addData("Gamepad2 y & dpad down / dpad up", "Loosen right slide / left slide");
+            telemetry.addData("Gamepad2 a", "Derail Shift");
+            telemetry.addData("----------", "----------");
             telemetry.addData("Left Slide Ticks", leftSlideMotor.getCurrentPosition() );
             telemetry.addData("Right Slide Ticks", rightSlideMotor.getCurrentPosition());
             telemetry.addData("Pivot Motor Ticks", pivotMotor.getCurrentPosition());

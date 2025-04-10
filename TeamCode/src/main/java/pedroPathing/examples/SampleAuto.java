@@ -48,14 +48,14 @@ public class SampleAuto extends LinearOpMode {
                 .addPath(new BezierCurve(
                         new Point(8, 111, Point.CARTESIAN),
                         new Point(15, 114.3, Point.CARTESIAN),
-                        new Point(8.5, 122.5, Point.CARTESIAN)))
+                        new Point(8.1, 123.0, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-45))
                 .build();
     }
     public static PathChain intake1Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine( // after place, goes to first sample
-                        new Point(8.5, 122.5, Point.CARTESIAN),
+                        new Point(8.1, 123.0, Point.CARTESIAN),
                         new Point(24.25, 121.75, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(0))
                 .build();
@@ -64,7 +64,7 @@ public class SampleAuto extends LinearOpMode {
         return new PathBuilder()
                 .addPath(new BezierLine(
                         new Point(24.25, 121.75, Point.CARTESIAN),
-                        new Point(12.4, 127.2, Point.CARTESIAN)
+                        new Point(10.9, 128.7, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-40))
                 .build();
@@ -74,8 +74,8 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain intake2Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(12.4, 127.2, Point.CARTESIAN),
-                        new Point(23.25, 130.0, Point.CARTESIAN)
+                        new Point(10.9, 128.7, Point.CARTESIAN),
+                        new Point(23.75, 130.0, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(-40), Math.toRadians(0))
                 .build();
@@ -84,37 +84,39 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain score2Sample() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(23.25, 130.0, Point.CARTESIAN),
+                        new Point(23.75, 130.0, Point.CARTESIAN),
                         new Point(20.1, 127.5, Point.CARTESIAN),
-                        new Point(14.6, 128.6, Point.CARTESIAN) //17.6, 125.6
+                        new Point(10.5, 129.5, Point.CARTESIAN) //17.6, 125.6
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-40))
+                .setZeroPowerAccelerationMultiplier(3.0)
                 .build();
     }
     public static PathChain intake3Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(14.6, 128.6, Point.CARTESIAN), //17.6, 125.6
-                        new Point(33.7, 133.6, Point.CARTESIAN)
+                        new Point(10.5, 129.5, Point.CARTESIAN), //17.6, 125.6
+                        new Point(32.2, 134.6, Point.CARTESIAN)
                 ))
-                .setLinearHeadingInterpolation(Math.toRadians(-40), Math.toRadians(42)) //35
+                .setLinearHeadingInterpolation(Math.toRadians(-40), Math.toRadians(38.5))
+                .setZeroPowerAccelerationMultiplier(4.0)//35
                 .build();
     }
     public static PathChain score3Sample() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(33.7, 133.6, Point.CARTESIAN),
+                        new Point(32.2, 134.6, Point.CARTESIAN),
                         new Point (32,110, Point.CARTESIAN),
-                        new Point(8.7, 126.0, Point.CARTESIAN)
+                        new Point(7.7, 127.0, Point.CARTESIAN)
                 ))
-                .setLinearHeadingInterpolation(Math.toRadians(42), Math.toRadians(-45)) //35
+                .setLinearHeadingInterpolation(Math.toRadians(38.5), Math.toRadians(-45)) //35
                 .build();
     }
     public static PathChain fixRotation() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(8.7, 126.0, Point.CARTESIAN),
-                        new Point(41,124, Point.CARTESIAN),
+                        new Point(7.7, 127.0, Point.CARTESIAN),
+                        new Point(47,126, Point.CARTESIAN),
                         new Point(42,107, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(-90))
@@ -223,7 +225,7 @@ public class SampleAuto extends LinearOpMode {
         @Override
         public void execute() {
             if (!followerStarted) {
-                follower.followPath(score1Sample(), 0.7, false);
+                follower.followPath(score1Sample(), 0.7, true);
                 pathState = "score 2nd sample";
                 followerStarted = true;
             }
@@ -264,7 +266,7 @@ public class SampleAuto extends LinearOpMode {
         @Override
         public void execute() {
             if (!followerStarted) {
-                follower.followPath(score2Sample(), 0.8, false);
+                follower.followPath(score2Sample(), 0.8, true);
                 pathState = "score 3rd sample";
                 followerStarted = true;
             }
@@ -420,7 +422,7 @@ public class SampleAuto extends LinearOpMode {
                         ),
                         new WaitCommand(500),
                         slideArm.new wristGather(),
-                        slideArm.new IntakeSample().withTimeout((long) SlideArm.AUTO_INTAKE_DIAG_PICKUP_THRESHOLD+ 50),
+                        slideArm.new IntakeSample().withTimeout((long) SlideArm.AUTO_INTAKE_DIAG_PICKUP_THRESHOLD),
                         slideArm.new stopIntake(),
                         new ParallelCommandGroup(
                                 this.new FollowScore3Sample(),
@@ -469,7 +471,9 @@ public class SampleAuto extends LinearOpMode {
                 rightLight.setColor(IndicatorLight.COLOR_BEECON);
             }
         }
+        slideArm.derailShiftDown();
         waitForStart();
+        slideArm.derailRelax();
         leftLight.setColor(IndicatorLight.COLOR_BEECON);
         rightLight.setColor(IndicatorLight.COLOR_BEECON);
         slideArm.slideBrakes();

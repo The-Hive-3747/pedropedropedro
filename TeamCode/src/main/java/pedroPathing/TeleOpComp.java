@@ -23,13 +23,6 @@ import pedroPathing.subsystem.OpModeTransfer;
 import pedroPathing.subsystem.SlideArm;
 import pedroPathing.subsystem.SpecimenArm;
 
-import pedroPathing.constants.FConstants;
-import pedroPathing.constants.LConstants;
-import pedroPathing.subsystem.IndicatorLight;
-import pedroPathing.subsystem.OpModeTransfer;
-import pedroPathing.subsystem.SlideArm;
-import pedroPathing.subsystem.SpecimenArm;
-
 import java.util.Stack;
 
 @TeleOp(name="TeleOpComp")
@@ -47,10 +40,11 @@ public class TeleOpComp extends LinearOpMode {
     public static double LOW_SPEED_THRESHOLD = 0.1;
     public static double RUMBLE_HANG_TIME_OUT = 90.0;
     public static double RUMBLE_HANG_TIME_OUT_END = 95.0;
-    public static double RUMBLE_HANG_TIME2_OUT = 105.0;
-    public static double RUMBLE_HANG_TIME2_OUT_END = 110.0;
+    public static double RUMBLE_HANG_TIME2_OUT = 100.0;//105.0;
+    public static double RUMBLE_HANG_TIME2_OUT_END = 105.0; //110.0;
     public static double LEVEL_TWO_HANG_RETRACT_MSECONDS = 3000.0;
     public static double LEVEL_TWO_HANG_TIP_MSECONDS = 2500.0;
+    public static double SLIDE_HOVER_EXTEND_TIME = 2000.0;
     public static double LEVEL_TWO_HANG_HOOK_MSECONDS = 1000.0; // 2000.0
     public static double LEVEL_TWO_HANG_RELEASE_MSECONDS = 3000.0;
     public static double LEVEL_THREE_HANG_CLIMB_MSECONDS = 12000.0;
@@ -63,10 +57,11 @@ public class TeleOpComp extends LinearOpMode {
     private boolean slideWasExtend = false;
     private boolean clawWasPushed = false;
     private boolean shoulderWasPushed = false;
+    private boolean slideUpHoverL2Started = false;
     private boolean disableSpecimenArmWasPushed = false;
     private boolean releaseSlideArmHangWasPushed = false;
     private boolean configModeActivated = false;
-    private boolean hangModeActivated = false;
+    private boolean derailModeActivated = false;
     private boolean configWasRequested = false;
     private boolean pivotResetWasRequested = false;
     private boolean retractResetWasRequested = false;
@@ -95,6 +90,7 @@ public class TeleOpComp extends LinearOpMode {
     private boolean showWarningLights = false;
     private boolean noLimitsSlideWasExtend = false;
     private boolean hangModeRequested = false;
+    private boolean rawDriveStarted = false;
     private boolean hangButtonWasPressed = false;
     private boolean tensionSchedulerReset = false;
     private boolean levelTwoHangTipped = false;
@@ -106,7 +102,12 @@ public class TeleOpComp extends LinearOpMode {
     private boolean levelThreeClimb = false;
     private boolean thirdLevelPivotTipped = false;
     private boolean thirdLevelPivotTipRequested = false;
+    private boolean hangModeActivated = false;
+    private boolean stopTensionRequested = false;
+    private boolean pivotLimped = false;
     private double RAW_DRIVE_TIME = 200.0; //250.0;
+    private double RAW_DRIVE_BACKWARD_TIME = 800.0;
+    private double PIVOT_LIMPED_TIME = 500.0;
     private DcMotor leftFront = null;
     private DcMotor rightFront = null;
     private DcMotor leftBack = null;
@@ -147,7 +148,7 @@ public class TeleOpComp extends LinearOpMode {
     private boolean resetMotors = false;
     private boolean hasTensioned = false;
     private boolean hasDownTensioned = false;
-    public static int hangState = 1;
+    public static int hangState = -1;
     private boolean firstPhaseStarted = false;
     private boolean pivotStarted = false;
     private ElapsedTime levelTwoHangTimer = new ElapsedTime();
@@ -161,7 +162,9 @@ public class TeleOpComp extends LinearOpMode {
     public static double joystickTolerance = 0.1;
     @Override
     public void runOpMode() throws InterruptedException {
-
+        hangState = -1;
+        derailModeActivated = false;
+        hangModeActivated = false;
         HIVE_COLOR = OpModeTransfer.autoColor;
         IndicatorLight leftLight = new IndicatorLight(hardwareMap, telemetry, "left_light");
         IndicatorLight rightLight = new IndicatorLight(hardwareMap, telemetry, "right_light");
@@ -212,7 +215,7 @@ public class TeleOpComp extends LinearOpMode {
         waitForStart();
         matchTimer.reset();
         slideArm.setWristToReady();
-        //slideArm.derailShiftDown();
+        // slideArm.derailShiftDown(); // TODO: UNCOMMENT THIS FOR WORLDS
         follower.startTeleopDrive();
 
 
@@ -221,8 +224,23 @@ public class TeleOpComp extends LinearOpMode {
             if (configModeActivated){
                 runConfigMode();
             }
-            else if (hangModeActivated) {
-                runHangMode();
+            else if (derailModeActivated) {
+                if (slideArm.hasDerailed() && !slideArm.isTensionDone()) { //&& !stopTensionRequested && !slideArm.isTensionDone()) {
+                    /*if (!tensionSchedulerReset) {
+                        slideArm.tensionResetScheduler();
+                        tensionSchedulerReset = true;
+                    }
+                    slideArm.runSchedule();*/
+                    slideArm.slideDownDerail();
+                    slideArm.tensionSlides();
+                    slideArm.derailShiftSecond();
+                }
+                if (!hangModeActivated) {
+                    runDerailMode();
+                }
+                else {
+                    runHangMode();
+                }
             }
             else {
                     if (hasAutoMoved) {
@@ -245,8 +263,13 @@ public class TeleOpComp extends LinearOpMode {
                         hasAutoMoved = false;
                         follower.startTeleopDrive();
                     }
-                    if (gamepad2.dpad_down && hangModeRequested && !hangModeActivated && !hangButtonWasPressed) {
-                        hangModeActivated = true;
+                    if (gamepad2.dpad_down && hangModeRequested && !derailModeActivated && !hangButtonWasPressed) {
+                        if (gamepad2.back) {
+                            hangModeActivated = true;
+                        }
+                        else {
+                            derailModeActivated = true;
+                        }
                     }
                     if (gamepad2.dpad_down && !hangButtonWasPressed) {
                         if (!hangModeRequested) {
@@ -319,7 +342,7 @@ public class TeleOpComp extends LinearOpMode {
                     } else if (!gamepad1.x && shoulderWasPushed) {
                         shoulderWasPushed = false;
                     }
-
+                    /*
                     if (gamepad2.b && !pivotHangRequested) {
                         //hangModeRequested = true;
                         slideArm.pivotForTallHang();
@@ -327,12 +350,12 @@ public class TeleOpComp extends LinearOpMode {
                         specimenArm.goToSpecimenCollect();
                         slideArm.setWristToStow();
                         pivotHangRequested = true;
-                        hangModeActivated = true;
+                        derailModeActivated = true;
                     }
                     if (!gamepad2.b && pivotHangRequested) {
                         pivotHangRequested = false;
-                    }
-                    if (gamepad2.a && !aWasPushed && hangModeActivated) {
+                    }*/
+                    if (gamepad2.a && !aWasPushed && derailModeActivated) {
                         aWasPushed = true;
                         slideArm.pivotDownForTallHang();
                         slideArm.hangHoldForTallHang();
@@ -543,9 +566,13 @@ public class TeleOpComp extends LinearOpMode {
                 leftLight.setColor(IndicatorLight.COLOR_ORANGE);
                 rightLight.setColor(IndicatorLight.COLOR_VIOLET);
             }
-            else if (hangModeActivated){
+            else if (hangModeActivated) {
                 leftLight.setColor(IndicatorLight.COLOR_VIOLET);
                 rightLight.setColor(IndicatorLight.COLOR_VIOLET);
+            }
+            else if (derailModeActivated){
+                leftLight.setColor(IndicatorLight.COLOR_SAGE);
+                rightLight.setColor(IndicatorLight.COLOR_SAGE);
             }
             else if (hangModeRequested) {
                 leftLight.setColor(IndicatorLight.COLOR_VIOLET);
@@ -634,6 +661,17 @@ public class TeleOpComp extends LinearOpMode {
         rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
+    public void rawDriveBackward(){
+        follower.breakFollowing();
+        leftBack.setPower(-DRIVE_POWER);
+        rightBack.setPower(-DRIVE_POWER);
+        leftFront.setPower(-DRIVE_POWER);
+        rightFront.setPower(-DRIVE_POWER);
+        leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    }
     public void stopDriveForward() {
         leftBack.setPower(0);
         rightBack.setPower(0);
@@ -645,22 +683,19 @@ public class TeleOpComp extends LinearOpMode {
         follower.startTeleopDrive();
     }
 
-    public void runHangMode() {
-/*
-        if (!slideArm.isHasDerailed() && !slideWasExtend && !slideWasRetract) {
+    public void runDerailMode() {
+        if (!slideArm.hasDerailed() && !slideWasExtend && !slideWasRetract) {
             if (!derailSchedulerReset) {
                 slideArm.derailResetScheduler();
                 derailSchedulerReset = true;
             }
             slideArm.runSchedule();
         }
-        if (slideArm.isHasDerailed()) {
-            if (!tensionSchedulerReset) {
-                slideArm.tensionResetScheduler();
-                tensionSchedulerReset = true;
-            }
-            slideArm.runSchedule();
+
+        if (slideArm.hasDerailed()) {
+            hangModeActivated = true;
         }
+
         if (gamepad2.dpad_left) {
             slideWasRetract = true;
             slideArm.slideDownOneStep();
@@ -677,28 +712,9 @@ public class TeleOpComp extends LinearOpMode {
             slideWasExtend = false;
             slideArm.stopSliding();
         }
-        if (gamepad2.y && !wasPivoting) {
-            telemetry.addData("Status", "Pivoting Up");
-            pivotTimer.reset();
-            specimenArm.clawStateClose();
-            slideArm.hangPivotUp();
-            wasPivoting = true;
-        }
-        if (!gamepad2.y && wasPivoting){
-            wasPivoting = false;
-        }
-        if (gamepad2.x && !wasPivoting) {
-            telemetry.addData("Status", "Pivoting Down");
-            pivotTimer.reset();
-            specimenArm.clawStateClose();
-            slideArm.hangPivotDown();
-            wasPivoting = true;
-        }
-        if (!gamepad2.x && wasPivoting){
-            wasPivoting = false;
-        }*/
+    }
 
-
+    public void runHangMode() {
         //Back up 2 inches
         //Pivot at an angle to hang
         //Extend slides
@@ -707,37 +723,62 @@ public class TeleOpComp extends LinearOpMode {
 
 
         switch(hangState){
-            case 0:
-                if(!firstPhaseStarted){
-                    Pose currentPose = follower.getPose();
-                    PathChain backup = new PathBuilder().addPath(
-                    new BezierLine(new Point(currentPose.getX(),currentPose.getY()),
-                            new Point(currentPose.getX(),currentPose.getY() + 2.0)))
-                            .setLinearHeadingInterpolation(currentPose.getHeading(),currentPose.getHeading())
-                            .build();
-                    firstPhaseStarted = false;
-                    follower.followPath(backup);
+            case -1:
+                if (gamepad2.dpad_left) {
+                    slideWasRetract = true;
+                    slideArm.retractWithoutLimits();
+                }
+                if (slideWasRetract && !gamepad2.dpad_left) {
+                    slideWasRetract = false;
+                    slideArm.resetSlideEncoders();
+                    slideArm.stopSliding();
+                }
+                if (gamepad2.dpad_right) {
+                    slideWasExtend = true;
+                    slideArm.slideUpOneStep();
+                }
+                if (slideWasExtend && !gamepad2.dpad_right) {
+                    slideWasExtend = false;
+                    slideArm.stopSliding();
+                }
+                if (!stopTensionRequested && gamepad2.a) {
+                    stopTensionRequested = true;
+                }
+                if (stopTensionRequested && gamepad2.b) {
+                    stopTensionRequested = false;
                 }
 
-                if (!follower.isBusy()) {
+                if(gamepad2.back && !nextStateRequested) {
+                    nextStateRequested = true;
+                }
+                if(!gamepad2.back && nextStateRequested) {
+                    nextStateRequested = false;
+                    pivotStarted = false;
                     hangState++;
                 }
-
                 break;
-            case 1:
+
+            case 0: // pivot up, first level
                 if(!pivotStarted) {
                     slideArm.setWristToStow();
                     specimenArm.goToSpecimenCollect();
+                    specimenArm.clawStateOpen();
                     slideArm.zeroMotors();
                     slideArm.pivotHang();
                     pivotStarted = true;
                 }
                 if (!slideArm.pivotIsBusy()) {
+                    slideUpHoverL2Started = false;
                     hangState++;
                 }
                 break;
-            case 2:
-                if (gamepad2.dpad_right && !slideWasExtend) {
+            case 1: // extend onto first bar
+                if(!slideUpHoverL2Started) {
+                    levelTwoHangTimer.reset();
+                    slideUpHoverL2Started = true;
+                    slideArm.slideUpHoverLevel2();
+                }
+                /*if (gamepad2.dpad_right && !slideWasExtend) {
                     slideWasExtend = true;
                     slideArm.slideUpOneStepWithoutLimitsHang();
                 }
@@ -751,15 +792,42 @@ public class TeleOpComp extends LinearOpMode {
                 if(!gamepad2.back && nextStateRequested) {
                     nextStateRequested = false;
                     hangState++;
+                }*/
+                if (!slideArm.slidesAreBusy() || levelTwoHangTimer.milliseconds() > SLIDE_HOVER_EXTEND_TIME) {
+                    nextStateRequested = false;
+                    hangState++;
+                }
+                break;
+            case 2: // fall onto first bar
+                if (!pivotLimped) {
+                    pivotLimped = true;
+                    levelTwoHangTimer.reset();
+                    slideArm.makePivotLimp();
+                    specimenArm.disableSpecimenArm();
+                }
+                if (levelTwoHangTimer.milliseconds() > RAW_DRIVE_BACKWARD_TIME) {
+                    rawDriveStarted = false;
+                    hangState++;
                 }
                 break;
             case 3:
-                slideArm.makePivotLimp();
-                specimenArm.disableSpecimenArm();
-                hangState++;
+
+                if (!rawDriveStarted) {
+                    rawDriveStarted = true;
+                    driveTime.reset();
+                    rawDriveBackward();
+                    slideArm.slideUpRawDrive();
+                }
+
+                if (driveTime.milliseconds() >= RAW_DRIVE_BACKWARD_TIME) {
+                    slideArm.releaseSlides();
+                    stopDriveForward();
+                    hangState++;
+                }
+
                 break;
-            case 4:
-                if (gamepad2.dpad_left && !slideWasRetract) {
+            case 4: // retract into first bar
+                /*if (gamepad2.dpad_left && !slideWasRetract) {
                     slideWasRetract = true;
                     slideArm.slideDownOneStepWithoutLimitsHang();
                 }
@@ -781,10 +849,15 @@ public class TeleOpComp extends LinearOpMode {
                 }
                 if(!gamepad2.back && nextStateRequested) {
                     nextStateRequested = false;
+                    levelTwoHangStarted = false;
+                    levelTwoHangTipped = false;
                     hangState++;
-                }
+                }*/
+                levelTwoHangStarted = false;
+                levelTwoHangTipped = false;
+                hangState++;
                 break;
-            case 5:
+            case 5: // LEVEL TWO HANG
                 if(!levelTwoHangStarted) {
                     levelTwoHangTimer.reset();
                     levelTwoHangStarted = true;
@@ -800,29 +873,36 @@ public class TeleOpComp extends LinearOpMode {
                     hangState++;
                 }
                 break;
-            case 6:
-                if(!levelTwoHookStarted){
+            case 6: // pivot onto hook
+                /*if(!levelTwoHookStarted){
                     levelTwoHookStarted = true;
                     slideArm.pivotLevelTwoHook();
                     levelTwoHangTimer.reset();
                 }
                 if(levelTwoHangTimer.milliseconds() >= LEVEL_TWO_HANG_HOOK_MSECONDS){
                     hangState++;
-                }
+                }*/
+                levelTwoReleaseStarted = false;
+                hangState++;
                 break;
-            case 7:
-                if(!levelTwoReleaseStarted){
+            case 7: // release onto hook
+                /*if(!levelTwoReleaseStarted){
                     levelTwoReleaseStarted = true;
-                    slideArm.releaseSlides();
-                    slideArm.makePivotLimp();
+                    //slideArm.releaseSlides();
+                    //slideArm.makePivotLimp();
                     levelTwoHangTimer.reset();
                 }
                 if(levelTwoHangTimer.milliseconds() >= LEVEL_TWO_HANG_RELEASE_MSECONDS){
                     //hangState++;
-                }
+                }*/
+                if (!levelTwoReleaseStarted) {
+                    slideArm.pivotBrakes();
+                    levelTwoReleaseStarted = true;
+                    }
                 break;
+
                 //TODO NEVER REACHES CASE 8 FOR LOW LEVEL HANG
-            case 8:
+            /*case 8:
                 if(!levelTwoSlideUp){
                     levelTwoSlideUp = true;
                     slideArm.zeroMotors();
@@ -900,10 +980,10 @@ public class TeleOpComp extends LinearOpMode {
                     slideArm.slideDownFullPower();
                     levelTwoHangTimer.reset();
                 }
-                /*if(levelTwoHangTimer.milliseconds() >= LEVEL_THREE_HANG_CLIMB_MSECONDS){
+                if(levelTwoHangTimer.milliseconds() >= LEVEL_THREE_HANG_CLIMB_MSECONDS){
                     slideArm.stopSliding();
                     hangState++;
-                }*/
+                }
                 if(!thirdLevelPivotTipRequested && gamepad2.x){
                     thirdLevelPivotTipRequested = true;
                     slideArm.pivotDownThirdLevelHang();
@@ -919,7 +999,7 @@ public class TeleOpComp extends LinearOpMode {
                 }
                 break;
             case 12:
-                break;
+                break;*/
 
 
             default:

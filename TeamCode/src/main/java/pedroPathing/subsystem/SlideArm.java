@@ -3,6 +3,7 @@ package pedroPathing.subsystem;
 import com.acmerobotics.dashboard.config.Config;
 import com.arcrobotics.ftclib.command.CommandBase;
 import com.arcrobotics.ftclib.command.CommandScheduler;
+import com.arcrobotics.ftclib.command.ParallelCommandGroup;
 import com.arcrobotics.ftclib.command.SequentialCommandGroup;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -66,6 +67,7 @@ public class SlideArm {
     private PivotHangState pivotHangPosition = PivotHangState.UP;
     private WristState wristPosition = WristState.READY;
     //public static int PIVOT_ENTER_POSITION = 400; //200;
+    private boolean tensioningDone = false;
     public static int PIVOT_UP_POSITION = 915;//924;//954;//930;//740;//776;//1400; //1500; //1350; //1245; measured on old motor//1031 actual;//335
     public static int PIVOT_DOWN_POSITION = 2;
     public static int PIVOT_HANG_BAR_POSITION = 400;
@@ -76,7 +78,7 @@ public class SlideArm {
     public static int PIVOT_HANG_PULL_UP_POSITION = 100;
     public static int PIVOT_HANG_POSITION = 850;//594; //514; //491; //590; //710; //680; //590; //610;//490;//1145; //1140; //1284;
     public static int PIVOT_TALL_HANG_POSITION = 750;//594; //514; //491; //590; //710; //680; //590; //610;//490;//1145; //1140; //1284;
-    public static int PIVOT_HANG_LEVEL_TWO_POSITION = 0;
+    public static int PIVOT_HANG_LEVEL_TWO_POSITION = 200; //100; //0;
     public static int PIVOT_HANG_LEVEL_TWO_TIP = 580;//330;
     public static int PIVOT_HANG_LEVEL_TWO_HOOK = 550;
     public static int PIVOT_HANG_LEVEL_THREE_HOLD_MOVE = -10;
@@ -119,6 +121,7 @@ public class SlideArm {
     public static int SLIDE_RIGHT_HANG_HEIGHT = 50; //410; //810;//1450;old hang for 312 motor
     public static int SLIDE_HANG_RELEASE_TICKS = 2650;
     public static int SLIDE_HANG_DOWN_TO_BAR_TICKS = 300;
+    public static int SLIDE_HOVER_L2_TICKS = 1908; //1878;
     public static int FIRST_SAMPLE_SLIDE_TICKS = 650;//1340;
     public static int SECOND_SAMPLE_SLIDE_TICKS = 1340;
     public static int THIRD_SAMPLE_SLIDE_TICKS = 1690;
@@ -141,21 +144,22 @@ public class SlideArm {
     public static double LEFT_DERAIL_DOWN = 0.0;
     public static double RIGHT_DERAIL_DOWN = 1.0;
     public static double TENSION_POWER = 1.0;
-    public static int TENSION_RUN_TIME = 5000;//500;
+    public static int TENSION_RUN_TIME = 8000; //5000;//500;
     public static double INTAKE_DISTANCE_STOP_CM = 7.35;
     public static double WRIST_STOW_POS = 1.0; //0.89; //0.0; old servo
     public static double WRIST_READY_POS = 0.32; //0.4; //0.33; //0.12; old servo
     public static double WRIST_GATHER_POS = 0.18; // 0.15;
     public static double WRIST_SCORE_POS = 0.6; //0.5; //1; // 0.7 0.5
-    public static double AUTO_INTAKE_THRESHOLD = 600.0;//800.0;
+    public static double AUTO_INTAKE_THRESHOLD = 700.0;//600.0;//800.0;
     public static double AUTO_INTAKE_PICKUP_THRESHOLD = 450;//300.0; //650.0; //700.0; //640.0; //600.0; //550.0; //600.0;
-    public static double AUTO_FIRST_INTAKE_PICKUP_THRESHOLD = 750.0;//500;
-    public static double AUTO_INTAKE_DIAG_PICKUP_THRESHOLD = 1050.0; //950; //900; //800.0; //850.0; //900.0; //950.0; //1100.0; //810.0;
+    public static double AUTO_FIRST_INTAKE_PICKUP_THRESHOLD = 800.0;//500.0; TODO: if color sensor broken, use 500
+    public static double AUTO_INTAKE_DIAG_PICKUP_THRESHOLD = 1200.0; //900.0; TODO: if color sensor broken, use 900
     public static double INTAKE_LEFT_POWER = -0.8;
     public static double INTAKE_RIGHT_POWER = -0.8;
     public static double INTAKE_LEFT_POWER_SCORE = 0.8;
     public static double INTAKE_RIGHT_POWER_SCORE = 0.8;
     private static double SLIDE_POWER_SCORE_HOLD = 0.3;//0.45;
+    private static double SLIDE_POWER_EXTEND_RAW_DRIVE = 0.1;
     private static double LUMINANCE_RED = 0.299;
     private static double LUMINANCE_GREEN = 0.587;
     private static double LUMINANCE_BLUE = 0.114;
@@ -166,7 +170,8 @@ public class SlideArm {
     public static double LUMINANCE_BLUE_CB_MIN = -16.0;
     public static double SLEEP_TIME = 5000.0;
     public static double PIVOT_RESET_POWER = -0.1;
-    public static double SLIDE_RESET_POWER = -0.2;
+    public static double SLIDE_RESET_POWER = -0.8;
+    private boolean hasSlidDown = false;
     private CommandScheduler scheduler = null;
     private CRServo leftIntake = null;
     private CRServo rightIntake = null;
@@ -197,6 +202,7 @@ public class SlideArm {
         leftDerailer = hardwareMap.get(ServoImplEx.class, "left_derailer");
         rightTensioner = hardwareMap.get(CRServo.class, "right_tensioner");
         leftTensioner = hardwareMap.get(CRServo.class, "left_tensioner");
+        hasSlidDown = false;
 
 
         if (resetMotors){
@@ -354,6 +360,9 @@ public class SlideArm {
     }
     public boolean pivotIsBusy() {
         return pivotMotor.isBusy();
+    }
+    public boolean slidesAreBusy() {
+        return leftSlideMotor.isBusy() || rightSlideMotor.isBusy();
     }
     public void nesetPivotHang(){
         //firstHangRequested = true;
@@ -648,6 +657,10 @@ public class SlideArm {
         rightDerailer.setPosition(RIGHT_DERAIL_DOWN);
         leftDerailer.setPosition(LEFT_DERAIL_DOWN);
     }
+    public void derailRelax() {
+        rightDerailer.setPwmDisable();
+        leftDerailer.setPwmDisable();
+    }
     public void derailShiftFirst() {
         rightDerailer.setPosition(RIGHT_DERAIL_UP_FIRST);
         leftDerailer.setPosition(LEFT_DERAIL_UP_FIRST);
@@ -681,6 +694,7 @@ public class SlideArm {
     }
     public boolean tensionSlides() {
         if(!tensionStarted) {
+            tensionDone = false;
             tensionTime.reset();
             tensionStarted = true;
             rightTensioner.setPower(TENSION_POWER);
@@ -690,6 +704,7 @@ public class SlideArm {
             rightTensioner.setPower(0);
             leftTensioner.setPower(0);
             tensionStarted = false;
+            tensionDone = true;
             return !tensionStarted;
         }
         return !tensionStarted;
@@ -835,18 +850,24 @@ public class SlideArm {
         }
 
     }
+    public void slideUpRawDrive(){
+            leftSlideMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            rightSlideMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            leftSlideMotor.setPower(SLIDE_POWER_EXTEND_RAW_DRIVE);
+            rightSlideMotor.setPower(SLIDE_POWER_EXTEND_RAW_DRIVE);
+    }
     public void releaseSlides(){
         leftSlideMotor.setPower(0);
         rightSlideMotor.setPower(0);
         isHolding = false;
     }
-    public void slideUpForHang(){
-        leftSlideMotor.setTargetPosition(leftSlideMotor.getCurrentPosition() + SLIDE_HANG_RELEASE_TICKS);
-        rightSlideMotor.setTargetPosition(rightSlideMotor.getCurrentPosition() + SLIDE_HANG_RELEASE_TICKS);
+    public void slideUpHoverLevel2(){
+        leftSlideMotor.setTargetPosition(SLIDE_HOVER_L2_TICKS);
+        rightSlideMotor.setTargetPosition(SLIDE_HOVER_L2_TICKS);
         leftSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         rightSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        leftSlideMotor.setPower(SLIDE_POWER_SCORE_HOLD);
-        rightSlideMotor.setPower(SLIDE_POWER_SCORE_HOLD);
+        leftSlideMotor.setPower(SLIDE_POWER);
+        rightSlideMotor.setPower(SLIDE_POWER);
         isHolding = true;
     }
     public void slideDownToBar(){
@@ -1055,6 +1076,18 @@ public class SlideArm {
             }
             return !isLeftDone || !isRightDone;
         }
+    public boolean slideDownDerail() {
+        if (!hasSlidDown) {
+            leftSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rightSlideMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            leftSlideMotor.setTargetPosition(leftSlideMotor.getCurrentPosition() - 800);
+            rightSlideMotor.setTargetPosition(rightSlideMotor.getCurrentPosition() - 800);
+            leftSlideMotor.setPower(SLIDE_POWER);
+            rightSlideMotor.setPower(SLIDE_POWER);
+            hasSlidDown = true;
+        }
+        return slidesAreBusy();
+    }
     public boolean slideDownOneStepTo3Sample() {
         doRelease = false;
         int LIMIT = SLIDE_AUTO_RETRACT_3_SAMPLE_TICKS;
@@ -1117,9 +1150,14 @@ public class SlideArm {
             rightSlideMotor.setPower(SLIDE_POWER);
         } */
     }
+
     public void stopPivoting() {
         pivotMotor.setPower(0);
         pivotMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+    }
+    public void pivotBrakes() {
+        pivotMotor.setPower(0);
+        pivotMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
     public int getFrontSlideTicks() {
         return leftSlideMotor.getCurrentPosition();
@@ -1435,13 +1473,15 @@ public class SlideArm {
         @Override
         public void initialize() {
             isDone = false;
+            hasSlidDown = false;
         }
 
         @Override
         public void execute() {
             telemetry.addData("Slide", "Retracting");
             telemetry.update();
-            isDone = !slideDownOneStep();
+            isDone = !slideDownDerail();
+
         }
 
         @Override
@@ -1470,15 +1510,18 @@ public class SlideArm {
             return isDone;
         }
     }
-    public boolean isHasDerailed() {
+    public boolean hasDerailed() {
         return hasDerailed;
+    }
+    public boolean isTensionDone() {
+        return tensionDone;
     }
 
     public void derailResetScheduler() {
         hasDerailed = false;
         scheduler.schedule(
                 new SequentialCommandGroup(
-                        this.new DerailPivotUp(),
+                        //this.new DerailPivotUp(),
                         this.new DerailExtendSlides(),
                         this.new DerailShiftFirst()
                 )
@@ -1486,10 +1529,14 @@ public class SlideArm {
     }
     public void tensionResetScheduler() {
         hasDerailed = false;
+        hasSlidDown = false;
         scheduler.schedule(
                 new SequentialCommandGroup(
                         this.new DerailShiftSecond(),
-                        this.new DerailTensionSlides()
+                        new ParallelCommandGroup(
+                            this.new DerailTensionSlides(),
+                            this.new DerailRetractSlides()
+                        )
                 )
         );
     }

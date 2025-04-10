@@ -15,6 +15,7 @@ import android.util.Size;
 
 import java.util.List;
 
+@Disabled
 @TeleOp(name = "Color Blob Locator for Red/Blue", group = "Concept")
 public class VisionTestOpMode extends LinearOpMode {
 

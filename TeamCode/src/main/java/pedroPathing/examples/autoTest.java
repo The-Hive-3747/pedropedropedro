@@ -16,7 +16,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.arcrobotics.ftclib.*;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-//@Disabled
+@Disabled
 @Autonomous(name="auto testFILE")
 public class autoTest extends LinearOpMode {
     private SpecimenArm specimenArm = null;
