@@ -267,7 +267,7 @@ public class SampleAutoSlide extends LinearOpMode {
                                 //slideArm.new wristGather(),
 
                                         new ParallelCommandGroup(
-                                            slideArm.new IntakeSample().withTimeout( AUTO_FIRST_INTAKE_PICKUP_THRESHOLD),
+                                            //.new IntakeSample().withTimeout( AUTO_FIRST_INTAKE_PICKUP_THRESHOLD),
 
                                                 new SequentialCommandGroup(
                                                     new WaitCommand(1000),

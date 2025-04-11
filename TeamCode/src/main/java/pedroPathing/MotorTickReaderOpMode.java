@@ -139,11 +139,7 @@ public class MotorTickReaderOpMode extends LinearOpMode {
                 slideArm.tensionSlidesManual();
                 hasTensioned = true;
             }
-            if ((!gamepad1.b && hasTensioned)){
-                slideArm.stopTensioning();
-                hasTensioned = false;
-            }
-            if ((!gamepad2.b && hasTensioned)){
+            if ((!gamepad2.b && !gamepad1.b && hasTensioned)){
                 slideArm.stopTensioning();
                 hasTensioned = false;
             }
@@ -179,11 +175,7 @@ public class MotorTickReaderOpMode extends LinearOpMode {
                 slideArm.loosenSlidesManual();
                 hasDownTensioned = true;
             }
-            if ((!gamepad2.y && hasDownTensioned)) {
-                slideArm.stopTensioning();
-                hasDownTensioned = false;
-            }
-            if ((!gamepad1.y && hasDownTensioned)) {
+            if ((!gamepad2.y && !gamepad1.y && hasDownTensioned)) {
                 slideArm.stopTensioning();
                 hasDownTensioned = false;
             }

@@ -84,6 +84,7 @@ public class SlideArm {
     public static int PIVOT_HANG_LEVEL_THREE_HOLD_MOVE = -10;
     public static int PIVOT_DOWN_WHILE_HANG = 466;
     public static int PIVOT_DOWN_FOR_HANG = 390;
+    public boolean backupUsed = false;
     public static double PIVOT_POWER_UP = 0.95;//0.85; //0.6; //0.7;
     public static double PIVOT_POWER_ENTER_UP = 0.6;
     public static double PIVOT_POWER_DOWN = 0.5;//0.6;//0.7;//0.5;//0.3; //0.7; //0.05;
@@ -113,15 +114,15 @@ public class SlideArm {
     public static int SLIDE_HANG_NEGATIVE_TICKS = -1700;
     public static int SLIDE_LEFT_HORIZ_LEGAL_LIMIT_TICKS = 976;//1356; //1240; //844; //967; //1033;//1444; //1372; //1472;//2027;
     public static int SLIDE_RIGHT_HORIZ_LEGAL_LIMIT_TICKS = 976;//1356; //844; //967; //1033; //1444; //1372; //1472;//2027;
-    public static int SLIDE_LEFT_HEIGHT_SCORE_TICKS = 1900;//2001;//2560;//2000;//1807;//1936; //3568;
-    public static int SLIDE_RIGHT_HEIGHT_SCORE_TICKS = 1900;//2001;//2560;//2000;//1807;//1936; //3569;
-    public static int SLIDE_LEFT_MAX = 2100;//1968;//3139;//2319;//3962;
+    public static int SLIDE_LEFT_HEIGHT_SCORE_TICKS = 2000;//2001;//2560;//2000;//1807;//1936; //3568;
+    public static int SLIDE_RIGHT_HEIGHT_SCORE_TICKS = 2000;//2001;//2560;//2000;//1807;//1936; //3569;
+    public static int SLIDE_LEFT_MAX = 2250;//1968;//3139;//2319;//3962;
     public static int SLIDE_RIGHT_MAX = SLIDE_LEFT_MAX;//3967;
     public static int SLIDE_LEFT_HANG_HEIGHT = 50; //410; //810;//1450;old hang for 312 motor
     public static int SLIDE_RIGHT_HANG_HEIGHT = 50; //410; //810;//1450;old hang for 312 motor
     public static int SLIDE_HANG_RELEASE_TICKS = 2650;
     public static int SLIDE_HANG_DOWN_TO_BAR_TICKS = 300;
-    public static int SLIDE_HOVER_L2_TICKS = 1908; //1878;
+    public static int SLIDE_HOVER_L2_TICKS = 1800;//1878;//1908; //1878;
     public static int FIRST_SAMPLE_SLIDE_TICKS = 650;//1340;
     public static int SECOND_SAMPLE_SLIDE_TICKS = 1340;
     public static int THIRD_SAMPLE_SLIDE_TICKS = 1690;
@@ -178,7 +179,7 @@ public class SlideArm {
     private RevColorSensorV3 intakeColor = null;
     private ServoImplEx wrist = null;
     public static double AUTO_DETECT_TIME = 40.0;
-    public static double AUTO_DETECT_TIME_SAMPLE = 250.0;
+    public static double AUTO_DETECT_TIME_SAMPLE = 40.0;
 
 
 
@@ -1888,30 +1889,7 @@ public class SlideArm {
         }
     }
 
-    public class IntakeSample extends CommandBase {
-        boolean isDone = false;
-        public IntakeSample() {}
 
-        @Override
-        public void initialize() {
-            isDone = false;
-            autoIntakeStarted = false;
-        }
-
-        @Override
-        public void execute() {
-            //reverseIntakeScore();
-            isDone = activateIntakeWithSensorSampleAuto();
-            //isDone = false;
-
-
-        }
-
-        @Override
-        public boolean isFinished() {
-            return isDone;
-        }
-    }
 
     public class IntakeReverse extends CommandBase {
         boolean isDone = false;

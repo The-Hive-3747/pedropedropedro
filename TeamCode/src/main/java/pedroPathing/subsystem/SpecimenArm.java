@@ -56,7 +56,7 @@ public class SpecimenArm {
     public static double SHOULDER_OFFSET = 0.021;
     public static double SPECIMENARM_MOVE_TIME = 1000.0;
     public static double SPECIMENCLAW_OPEN_TIME = 140.0; //150.0;//200.0; //300.0; //200.0; //1000.0;
-    public static double SPECIMENARM_SCORE_TIME = 190.0; //150; //225.0; //250.0; //200.0; //150.0;
+    public static double SPECIMENARM_SCORE_TIME = 220;//190.0; //150; //225.0; //250.0; //200.0; //150.0;
     public static double SPECIMENARM_ENTER_TIME = 2000.0;//300.0;//500.0;
     public static double SPECIMENARM_COLLECT_THRESHOLD = 10.0;
     public static double SCORE_LATCH_TIME = 1.0;

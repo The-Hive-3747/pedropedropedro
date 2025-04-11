@@ -51,6 +51,7 @@ public class TeleOpComp extends LinearOpMode {
     public static double LEVEL_THREE_TIP_TIMER = 6000;
     public static double FLASH_LIGHT2_SECONDS = 0.25;
     public static double FLASH_LIGHT_SECONDS = 0.5;
+    public static double SLIDE_LIMIT_CHANGE_TIME = 30000;
     public static Stack<Double> battery_checker = new Stack<>();
     private boolean derailSchedulerReset = false;
     private boolean slideWasRetract = false;
@@ -105,9 +106,13 @@ public class TeleOpComp extends LinearOpMode {
     private boolean hangModeActivated = false;
     private boolean stopTensionRequested = false;
     private boolean pivotLimped = false;
+    private boolean slidesChanged = false;
+    private boolean backupUsed = false;
+    private boolean touchSensorHit = false;
     private double RAW_DRIVE_TIME = 200.0; //250.0;
     private double RAW_DRIVE_BACKWARD_TIME = 800.0;
     private double PIVOT_LIMPED_TIME = 500.0;
+    private int TOUCH_SENSOR_TIMER_FLASH_TIME = 1000;
     private DcMotor leftFront = null;
     private DcMotor rightFront = null;
     private DcMotor leftBack = null;
@@ -126,6 +131,7 @@ public class TeleOpComp extends LinearOpMode {
     private ElapsedTime criticalLoopTimer = new ElapsedTime();
     private ElapsedTime slowDownTimer = new ElapsedTime();
     private ElapsedTime flashLightTimer = new ElapsedTime();
+    private ElapsedTime touchLightTimer = new ElapsedTime();
     //private static Pose2d RESET_POSE = new Pose2d(0.0, 0.0, 0.0);
     private static double pivotTimerThreshold = 1000.0;
     private static double wristTimerThreshold = 750.0;
@@ -142,6 +148,7 @@ public class TeleOpComp extends LinearOpMode {
     private static double LUDICROUS_SPEED = 1.0;
     private static double SLOW_SPEED = 0.5;
     private static double SLOW_SCORE_SPEED = 0.2;
+    private boolean hasAutoTensioned = false;
     private double maxLoopTime = 0.0;
     private Follower follower;
     private final Pose startPose = new Pose(0,0,0);
@@ -165,6 +172,7 @@ public class TeleOpComp extends LinearOpMode {
         hangState = -1;
         derailModeActivated = false;
         hangModeActivated = false;
+        hasAutoTensioned = false;
         HIVE_COLOR = OpModeTransfer.autoColor;
         IndicatorLight leftLight = new IndicatorLight(hardwareMap, telemetry, "left_light");
         IndicatorLight rightLight = new IndicatorLight(hardwareMap, telemetry, "right_light");
@@ -225,15 +233,14 @@ public class TeleOpComp extends LinearOpMode {
                 runConfigMode();
             }
             else if (derailModeActivated) {
-                if (slideArm.hasDerailed() && !slideArm.isTensionDone()) { //&& !stopTensionRequested && !slideArm.isTensionDone()) {
-                    /*if (!tensionSchedulerReset) {
-                        slideArm.tensionResetScheduler();
-                        tensionSchedulerReset = true;
-                    }
-                    slideArm.runSchedule();*/
-                    slideArm.slideDownDerail();
+                if (slideArm.hasDerailed() && !slideArm.isTensionDone()) {
                     slideArm.tensionSlides();
-                    slideArm.derailShiftSecond();
+                    if (!hasAutoTensioned) {
+                        hasAutoTensioned = true;
+                        slideArm.slideDownDerail();
+                        slideArm.derailShiftSecond();
+                        specimenArm.goToSpecimenCollect();
+                    }
                 }
                 if (!hangModeActivated) {
                     runDerailMode();
@@ -360,6 +367,11 @@ public class TeleOpComp extends LinearOpMode {
                         slideArm.pivotDownForTallHang();
                         slideArm.hangHoldForTallHang();
                     }
+                    if (matchTimer.milliseconds() >= SLIDE_LIMIT_CHANGE_TIME && !slidesChanged) {
+                        slidesChanged = true;
+                        SlideArm.SLIDE_LEFT_HEIGHT_SCORE_TICKS = 2100;
+                        SlideArm.SLIDE_RIGHT_HEIGHT_SCORE_TICKS = 2100;
+                    }
                     if (!gamepad2.a && aWasPushed){
                         aWasPushed = false;
                         //slideArm.stopHang();
@@ -373,6 +385,8 @@ public class TeleOpComp extends LinearOpMode {
                     }*/
                     if (gamepad1.y && !clawWasPushed) {
                         specimenArm.nextClawState();
+                        backupUsed = true;
+                        touchLightTimer.reset();
                         clawWasPushed = true;
                     } else if (!gamepad1.y && clawWasPushed) {
                         clawWasPushed = false;
@@ -402,6 +416,8 @@ public class TeleOpComp extends LinearOpMode {
                     if (!clawSensorRan && !clawSensorWasPressed && specimenArm.clawSensor.isPressed()) {
                         //specimenArm.clawSensorGrab();
                         specimenArm.clawStateClose();
+                        touchSensorHit = true;
+                        touchLightTimer.reset();
                         sleep(SpecimenArm.CLAW_GRAB_DELAY);
                         specimenArm.goToSpecimenEnter();
                         driveTime.reset();
@@ -581,6 +597,20 @@ public class TeleOpComp extends LinearOpMode {
                 leftLight.setColor(IndicatorLight.COLOR_BLUE);
                 rightLight.setColor(IndicatorLight.COLOR_BLUE);
             }
+            else if (touchSensorHit) {
+                if (TOUCH_SENSOR_TIMER_FLASH_TIME < touchLightTimer.milliseconds()) {
+                    touchSensorHit = false;
+                }
+                rightLight.setColor(IndicatorLight.COLOR_GREEN);
+                leftLight.setColor(IndicatorLight.COLOR_BEECON);
+            }
+            else if (backupUsed) {
+                if (TOUCH_SENSOR_TIMER_FLASH_TIME < touchLightTimer.milliseconds()) {
+                    backupUsed = false;
+                }
+                rightLight.setColor(IndicatorLight.COLOR_RED);
+                leftLight.setColor(IndicatorLight.COLOR_BEECON);
+            }
             else if (isIntaking && slideArm.isWristGather()){
                 if (HIVE_COLOR == TeamColor.TEAM_BLUE) {
                     leftLight.setColor(IndicatorLight.COLOR_BLUE);
@@ -684,8 +714,10 @@ public class TeleOpComp extends LinearOpMode {
     }
 
     public void runDerailMode() {
+
         if (!slideArm.hasDerailed() && !slideWasExtend && !slideWasRetract) {
             if (!derailSchedulerReset) {
+                showWarningLights = false;
                 slideArm.derailResetScheduler();
                 derailSchedulerReset = true;
             }

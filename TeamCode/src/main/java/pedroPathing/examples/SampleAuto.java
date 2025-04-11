@@ -34,11 +34,15 @@ public class SampleAuto extends LinearOpMode {
     private SpecimenArm specimenArm = null;
     private CommandScheduler scheduler = null;
     private double RAW_DRIVE_TIME = 500.0; //250.0;
+    private ElapsedTime intakeLightTimer = new ElapsedTime();
     private DcMotor leftFront = null;
     private DcMotor rightFront = null;
     private DcMotor leftBack = null;
     private DcMotor rightBack = null;
     private double DRIVE_POWER = 0.3;
+    private boolean backupUsed = false;
+    private boolean colorSensorUsed = false;
+    private int INTAKE_COLOR_TIMER_FLASH_TIME = 1000;
     public static Pose startPose = new Pose(8,111, Math.toRadians(0));
 
     private Follower follower;
@@ -56,14 +60,14 @@ public class SampleAuto extends LinearOpMode {
         return new PathBuilder()
                 .addPath(new BezierLine( // after place, goes to first sample
                         new Point(8.1, 123.0, Point.CARTESIAN),
-                        new Point(24.25, 121.75, Point.CARTESIAN)))
+                        new Point(24.25, 122, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(0))
                 .build();
     }
     public static PathChain score1Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(24.25, 121.75, Point.CARTESIAN),
+                        new Point(24.25, 122, Point.CARTESIAN),
                         new Point(10.9, 128.7, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-40))
@@ -75,7 +79,7 @@ public class SampleAuto extends LinearOpMode {
         return new PathBuilder()
                 .addPath(new BezierLine(
                         new Point(10.9, 128.7, Point.CARTESIAN),
-                        new Point(23.75, 130.0, Point.CARTESIAN)
+                        new Point(23.75, 130.25, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(-40), Math.toRadians(0))
                 .build();
@@ -84,9 +88,9 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain score2Sample() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(23.75, 130.0, Point.CARTESIAN),
+                        new Point(23.75, 130.25, Point.CARTESIAN),
                         new Point(20.1, 127.5, Point.CARTESIAN),
-                        new Point(10.5, 129.5, Point.CARTESIAN) //17.6, 125.6
+                        new Point(11, 129, Point.CARTESIAN) //17.6, 125.6
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-40))
                 .setZeroPowerAccelerationMultiplier(3.0)
@@ -95,8 +99,8 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain intake3Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(10.5, 129.5, Point.CARTESIAN), //17.6, 125.6
-                        new Point(32.2, 134.6, Point.CARTESIAN)
+                        new Point(11, 129, Point.CARTESIAN), //17.6, 125.6
+                        new Point(32.1, 134.6, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(-40), Math.toRadians(38.5))
                 .setZeroPowerAccelerationMultiplier(4.0)//35
@@ -105,7 +109,7 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain score3Sample() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(32.2, 134.6, Point.CARTESIAN),
+                        new Point(32.1, 134.6, Point.CARTESIAN),
                         new Point (32,110, Point.CARTESIAN),
                         new Point(7.7, 127.0, Point.CARTESIAN)
                 ))
@@ -337,6 +341,32 @@ public class SampleAuto extends LinearOpMode {
             return !follower.isBusy();
         }
     }
+    public class IntakeSample extends CommandBase {
+        boolean isDone = false;
+        public IntakeSample() {}
+
+        @Override
+        public void initialize() {
+            isDone = false;
+        }
+
+        @Override
+        public void execute() {
+            isDone = slideArm.activateIntakeWithSensorSampleAuto();
+        }
+
+        @Override
+        public boolean isFinished() {
+            return isDone;
+        }
+        @Override
+        public void end(boolean interrupted) {
+            if(interrupted) {
+                backupUsed = true;
+            }
+        }
+    }
+
     @Override
     public void runOpMode() {
         //Constants.setConstants(FConstants.class, LConstants.class);
@@ -380,7 +410,7 @@ public class SampleAuto extends LinearOpMode {
                                 this.new FollowIntake1Sample()
                         ),
                         slideArm.new wristGather(),
-                        slideArm.new IntakeSample().withTimeout((long) SlideArm.AUTO_FIRST_INTAKE_PICKUP_THRESHOLD),
+                        this.new IntakeSample().withTimeout((long) SlideArm.AUTO_FIRST_INTAKE_PICKUP_THRESHOLD),
                         slideArm.new stopIntake(),
                         new ParallelCommandGroup(
                                 this.new FollowScore1Sample(),
@@ -391,7 +421,7 @@ public class SampleAuto extends LinearOpMode {
                         slideArm.new wristScore(),
                         new WaitCommand(250),
                         slideArm.new IntakeScore(),
-                        //new WaitCommand(500),
+
                         slideArm.new stopIntake(),
                         slideArm.new wristReady(),
                         slideArm.new RetractSlideArm().withTimeout(1500),
@@ -400,8 +430,8 @@ public class SampleAuto extends LinearOpMode {
                                 this.new FollowIntake2Sample()
                         ),
                         slideArm.new wristGather(),
-                        slideArm.new IntakeSample().withTimeout((long) SlideArm.AUTO_INTAKE_PICKUP_THRESHOLD),
-                        //new WaitCommand(1000),
+                        this.new IntakeSample().withTimeout((long) SlideArm.AUTO_INTAKE_PICKUP_THRESHOLD),
+
                         slideArm.new stopIntake(),
                         new ParallelCommandGroup(
                                 this.new FollowScore2Sample(),
@@ -422,7 +452,7 @@ public class SampleAuto extends LinearOpMode {
                         ),
                         new WaitCommand(500),
                         slideArm.new wristGather(),
-                        slideArm.new IntakeSample().withTimeout((long) SlideArm.AUTO_INTAKE_DIAG_PICKUP_THRESHOLD),
+                        this.new IntakeSample().withTimeout((long) SlideArm.AUTO_INTAKE_DIAG_PICKUP_THRESHOLD),
                         slideArm.new stopIntake(),
                         new ParallelCommandGroup(
                                 this.new FollowScore3Sample(),
@@ -491,6 +521,25 @@ public class SampleAuto extends LinearOpMode {
             slideArm.addSlideTelemetry();
             telemetry.update();
             scheduler.run();
+
+            if (colorSensorUsed) {
+                if (INTAKE_COLOR_TIMER_FLASH_TIME < intakeLightTimer.milliseconds()) {
+                    colorSensorUsed = false;
+                }
+                rightLight.setColor(IndicatorLight.COLOR_GREEN);
+                leftLight.setColor(IndicatorLight.COLOR_BEECON);
+            }
+            else if (backupUsed) {
+                if (INTAKE_COLOR_TIMER_FLASH_TIME < intakeLightTimer.milliseconds()) {
+                    backupUsed = false;
+                }
+                rightLight.setColor(IndicatorLight.COLOR_RED);
+                leftLight.setColor(IndicatorLight.COLOR_BEECON);
+            }
+            else {
+                leftLight.setColor(IndicatorLight.COLOR_BEECON);
+                rightLight.setColor(IndicatorLight.COLOR_BEECON);
+            }
 
 
         }

@@ -66,16 +66,17 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 .addPath(new BezierLine(
                         new Point(8, 61.5, Point.CARTESIAN),
                         new Point(38.5, 83, Point.CARTESIAN))) //75
-                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(5))
+                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(10))
                 .build();
     }
     public static PathChain pushSamples() {
         return new PathBuilder()
                 .addPath(new BezierCurve( // after place, goes to first sample
                         new Point(38.5, 83, Point.CARTESIAN),
-                        new Point(0.7, 43.8, Point.CARTESIAN), //x:0.7 y:43.8
+                        new Point(0.7, 60.0, Point.CARTESIAN), //x:0.7 y:43.8
+                        //new Point(52, 42, Point.CARTESIAN),
                         new Point(50.0, 28, Point.CARTESIAN))) //x:53.5, y:28
-                .setLinearHeadingInterpolation(Math.toRadians(5), Math.toRadians(0))
+                .setLinearHeadingInterpolation(Math.toRadians(10), Math.toRadians(0))
                 .addPath(new BezierLine( // pushes first sample
                         new Point(50.0, 28, Point.CARTESIAN),//x:53.5, y:28
                         new Point(25, 23, Point.CARTESIAN))) //21
@@ -96,21 +97,19 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 .addPath(new BezierCurve( // pushes third sample
                         new Point(44.5, 10, Point.CARTESIAN), //x:48, y:10// change this y if the robot is hitting the wall at the beginning of the path
                         new Point(70, 7, Point.CARTESIAN), //6.2 /  0.6 / change this y if the robot is hitting the wall at the middle of the path
-                        new Point(20, 5, Point.CARTESIAN))) // change this y if the robot is hitting the wall at the end of the path
+                        new Point(25, 6, Point.CARTESIAN))) // change this y if the robot is hitting the wall at the end of the path
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine(
-                        new Point(20,5,Point.CARTESIAN),
-                        new Point(15.5
-                                ,5, Point.CARTESIAN)
-                ))
+                        new Point(25,6,Point.CARTESIAN),
+                        new Point(15,6, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
     }
     public static PathChain score1Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(15.5, 5, Point.CARTESIAN),
-                        new Point(12, 70, Point.CARTESIAN),
+                        new Point(15, 6, Point.CARTESIAN),
+                        new Point(13.5, 70, Point.CARTESIAN),
                         new Point(39, 76, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
