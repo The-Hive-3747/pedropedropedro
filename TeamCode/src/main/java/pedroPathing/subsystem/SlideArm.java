@@ -154,7 +154,7 @@ public class SlideArm {
     public static double AUTO_INTAKE_THRESHOLD = 700.0;//600.0;//800.0;
     public static double AUTO_INTAKE_PICKUP_THRESHOLD = 450;//300.0; //650.0; //700.0; //640.0; //600.0; //550.0; //600.0;
     public static double AUTO_FIRST_INTAKE_PICKUP_THRESHOLD = 800.0;//500.0; TODO: if color sensor broken, use 500
-    public static double AUTO_INTAKE_DIAG_PICKUP_THRESHOLD = 1200.0; //900.0; TODO: if color sensor broken, use 900
+    public static double AUTO_INTAKE_DIAG_PICKUP_THRESHOLD = 800.0;//1200.0; //900.0; TODO: if color sensor broken, use 900
     public static double INTAKE_LEFT_POWER = -0.8;
     public static double INTAKE_RIGHT_POWER = -0.8;
     public static double INTAKE_LEFT_POWER_SCORE = 0.8;
@@ -227,6 +227,26 @@ public class SlideArm {
         //pivotMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         rightIntake.setDirection(DcMotor.Direction.REVERSE);
         rightSlideMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        autoIntakeStarted = false;
+        sleepStarted = false;
+        pivotUpRequested = false;
+        pivotDownRequested = false;
+        pivotIsResting = true;
+        hangRequested = false;
+        unzeroed = false;
+        hasDerailed = false;
+        firstHangRequested = false;
+        doRelease = false;
+        isHolding = false;
+        tensionDone = false;
+        tensionStarted = false;
+        tensionDownStarted = false;
+        isPivotingDownAndRetracting = false;
+        tensionRightSlide = true;
+        loosenRightSlide = true;
+        hasSlidDown = false;
+        tensioningDone = false;
 
         telemetry.addData("Slide arm status", "init complete");
     }

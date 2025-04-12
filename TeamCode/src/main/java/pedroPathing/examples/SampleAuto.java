@@ -35,6 +35,7 @@ public class SampleAuto extends LinearOpMode {
     private CommandScheduler scheduler = null;
     private double RAW_DRIVE_TIME = 500.0; //250.0;
     private ElapsedTime intakeLightTimer = new ElapsedTime();
+    private ElapsedTime derailRelaxTimer = new ElapsedTime();
     private DcMotor leftFront = null;
     private DcMotor rightFront = null;
     private DcMotor leftBack = null;
@@ -42,7 +43,9 @@ public class SampleAuto extends LinearOpMode {
     private double DRIVE_POWER = 0.3;
     private boolean backupUsed = false;
     private boolean colorSensorUsed = false;
+    private boolean derailRelaxed = false;
     private int INTAKE_COLOR_TIMER_FLASH_TIME = 1000;
+    private double DERAIL_RELAX_TIME = 750.0;
     public static Pose startPose = new Pose(8,111, Math.toRadians(0));
 
     private Follower follower;
@@ -52,23 +55,23 @@ public class SampleAuto extends LinearOpMode {
                 .addPath(new BezierCurve(
                         new Point(8, 111, Point.CARTESIAN),
                         new Point(15, 114.3, Point.CARTESIAN),
-                        new Point(8.1, 123.0, Point.CARTESIAN)))
+                        new Point(9.6, 124.0, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-45))
                 .build();
     }
     public static PathChain intake1Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine( // after place, goes to first sample
-                        new Point(8.1, 123.0, Point.CARTESIAN),
-                        new Point(24.25, 122, Point.CARTESIAN)))
+                        new Point(9.6, 124.0, Point.CARTESIAN),
+                        new Point(24.25, 121.5, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(0))
                 .build();
     }
     public static PathChain score1Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(24.25, 122, Point.CARTESIAN),
-                        new Point(10.9, 128.7, Point.CARTESIAN)
+                        new Point(24.25, 121.5, Point.CARTESIAN),
+                        new Point(12.9, 127.7, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-40))
                 .build();
@@ -78,7 +81,7 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain intake2Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(10.9, 128.7, Point.CARTESIAN),
+                        new Point(12.9, 127.7, Point.CARTESIAN),
                         new Point(23.75, 130.25, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(-40), Math.toRadians(0))
@@ -90,7 +93,7 @@ public class SampleAuto extends LinearOpMode {
                 .addPath(new BezierCurve(
                         new Point(23.75, 130.25, Point.CARTESIAN),
                         new Point(20.1, 127.5, Point.CARTESIAN),
-                        new Point(11, 129, Point.CARTESIAN) //17.6, 125.6
+                        new Point(13, 126, Point.CARTESIAN) //17.6, 125.6
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-40))
                 .setZeroPowerAccelerationMultiplier(3.0)
@@ -99,27 +102,27 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain intake3Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(11, 129, Point.CARTESIAN), //17.6, 125.6
-                        new Point(32.1, 134.6, Point.CARTESIAN)
+                        new Point(13, 126, Point.CARTESIAN), //17.6, 125.6
+                        new Point(35.6, 134.5, Point.CARTESIAN)
                 ))
-                .setLinearHeadingInterpolation(Math.toRadians(-40), Math.toRadians(38.5))
+                .setLinearHeadingInterpolation(Math.toRadians(-40), Math.toRadians(37.5))
                 .setZeroPowerAccelerationMultiplier(4.0)//35
                 .build();
     }
     public static PathChain score3Sample() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(32.1, 134.6, Point.CARTESIAN),
+                        new Point(35.6, 134.5, Point.CARTESIAN),
                         new Point (32,110, Point.CARTESIAN),
-                        new Point(7.7, 127.0, Point.CARTESIAN)
+                        new Point(10.75, 124.0, Point.CARTESIAN)
                 ))
-                .setLinearHeadingInterpolation(Math.toRadians(38.5), Math.toRadians(-45)) //35
+                .setLinearHeadingInterpolation(Math.toRadians(37.5), Math.toRadians(-45)) //38.5
                 .build();
     }
     public static PathChain fixRotation() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(7.7, 127.0, Point.CARTESIAN),
+                        new Point(10.75, 124.0, Point.CARTESIAN),
                         new Point(47,126, Point.CARTESIAN),
                         new Point(42,107, Point.CARTESIAN)
                 ))
@@ -186,7 +189,7 @@ public class SampleAuto extends LinearOpMode {
         @Override
         public void execute() {
             if (!followerStarted) {
-                follower.followPath(preload(),0.8, false);
+                follower.followPath(preload(),0.8, true);
                 pathState = "score preload sample";
 
                 followerStarted = true;
@@ -385,6 +388,11 @@ public class SampleAuto extends LinearOpMode {
         leftLight.setColor(IndicatorLight.COLOR_RED);
         rightLight.setColor(IndicatorLight.COLOR_RED);
 
+        derailRelaxed = false;
+        backupUsed = false;
+        colorSensorUsed = false;
+        derailRelaxed = false;
+
 
         //waitForStart();
         scheduler = CommandScheduler.getInstance();
@@ -501,9 +509,11 @@ public class SampleAuto extends LinearOpMode {
                 rightLight.setColor(IndicatorLight.COLOR_BEECON);
             }
         }
-        slideArm.derailShiftDown();
+
         waitForStart();
-        slideArm.derailRelax();
+        slideArm.derailShiftDown(); // THIS IS THE WRONG WAY
+        //slideArm.derailRelax();
+        //derailRelaxTimer.reset();
         leftLight.setColor(IndicatorLight.COLOR_BEECON);
         rightLight.setColor(IndicatorLight.COLOR_BEECON);
         slideArm.slideBrakes();
@@ -540,6 +550,12 @@ public class SampleAuto extends LinearOpMode {
                 leftLight.setColor(IndicatorLight.COLOR_BEECON);
                 rightLight.setColor(IndicatorLight.COLOR_BEECON);
             }
+            /*
+            if(!derailRelaxed && derailRelaxTimer.milliseconds() >= DERAIL_RELAX_TIME){
+                slideArm.derailRelax();
+                derailRelaxed = true;
+            }
+            */
 
 
         }
