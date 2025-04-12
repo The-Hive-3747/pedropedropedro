@@ -46,7 +46,7 @@ public class SpecimenArm {
     public static int R_SHOULDER_SCORE_POS = 219;//260; //235;
     public static double CLAW_OPEN = 1.00; //0.95; //0.85;
     public static double CLAW_CLOSE = 0.61; //0.25;
-    public static long CLAW_GRAB_DELAY = 100;
+    public static long CLAW_GRAB_DELAY = 200; //100;
     public static double L_SHOULDER_STOW_POS = 0.12; //0.07;
     public static double L_SHOULDER_COLLECT_POS = 0.04;//0.05;
     public static double L_SHOULDER_ENTER_POS = 0.6;//0.55;

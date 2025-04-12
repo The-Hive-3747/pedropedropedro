@@ -73,12 +73,12 @@ public class FiveSpecimenAuto extends LinearOpMode {
         return new PathBuilder()
                 .addPath(new BezierCurve( // after place, goes to first sample
                         new Point(38.5, 83, Point.CARTESIAN),
-                        new Point(0.7, 60.0, Point.CARTESIAN), //x:0.7 y:43.8
-                        //new Point(52, 42, Point.CARTESIAN),
-                        new Point(50.0, 28, Point.CARTESIAN))) //x:53.5, y:28
+                        new Point(0, 60.0, Point.CARTESIAN), //x:0.7 y:43.8
+                        new Point(50.0, 30.5, Point.CARTESIAN))) //x:53.5, y:28
                 .setLinearHeadingInterpolation(Math.toRadians(10), Math.toRadians(0))
-                .addPath(new BezierLine( // pushes first sample
-                        new Point(50.0, 28, Point.CARTESIAN),//x:53.5, y:28
+                .addPath(new BezierCurve( // pushes first sample
+                        new Point(50.0, 30.5, Point.CARTESIAN),//x:53.5, y:28
+                        new Point(80, 25, Point.CARTESIAN),
                         new Point(25, 23, Point.CARTESIAN))) //21
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine( // goes to second sample
@@ -92,25 +92,25 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine( // goes to third sample
                         new Point(25, 11, Point.CARTESIAN),
-                        new Point(44.5, 10, Point.CARTESIAN))) //x:48, y:10 //x:47 royd
+                        new Point(44.5, 11, Point.CARTESIAN))) //x:48, y:10 //x:47 royd
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierCurve( // pushes third sample
-                        new Point(44.5, 10, Point.CARTESIAN), //x:48, y:10// change this y if the robot is hitting the wall at the beginning of the path
-                        new Point(70, 7, Point.CARTESIAN), //6.2 /  0.6 / change this y if the robot is hitting the wall at the middle of the path
-                        new Point(25, 6, Point.CARTESIAN))) // change this y if the robot is hitting the wall at the end of the path
+                        new Point(44.5, 11, Point.CARTESIAN), //x:48, y:10// change this y if the robot is hitting the wall at the beginning of the path
+                        new Point(70, 8.3, Point.CARTESIAN), //6.2 /  0.6 / change this y if the robot is hitting the wall at the middle of the path
+                        new Point(25, 6.2, Point.CARTESIAN))) // change this y if the robot is hitting the wall at the end of the path
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine(
-                        new Point(25,6,Point.CARTESIAN),
-                        new Point(15,6, Point.CARTESIAN)))
+                        new Point(25,6.2,Point.CARTESIAN),
+                        new Point(12,6, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
     }
     public static PathChain score1Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(15, 6, Point.CARTESIAN),
+                        new Point(12, 6, Point.CARTESIAN),
                         new Point(13.5, 70, Point.CARTESIAN),
-                        new Point(39, 76, Point.CARTESIAN)
+                        new Point(39, 76.5, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 //.setPathEndTValueConstraint(0.99)
@@ -120,7 +120,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
     public static PathChain pickup2Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(39, 76, Point.CARTESIAN),
+                        new Point(39, 76.5, Point.CARTESIAN),
                         new Point(31, 73, Point.CARTESIAN),
                         new Point(20, 45, Point.CARTESIAN)
                 ))
@@ -139,7 +139,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 .addPath(new BezierCurve(
                         new Point(15.5, 42, Point.CARTESIAN),
                         new Point(15, 60, Point.CARTESIAN),
-                        new Point(39, 74, Point.CARTESIAN)
+                        new Point(39, 74.5, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
@@ -147,7 +147,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
     public static PathChain pickup3Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(39, 74, Point.CARTESIAN), // 38.3
+                        new Point(39, 74.5, Point.CARTESIAN), // 38.3
                         new Point(31, 73, Point.CARTESIAN),
                         new Point(20, 45, Point.CARTESIAN)
                 ))
@@ -164,7 +164,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 .addPath(new BezierCurve(
                         new Point(15.5, 42, Point.CARTESIAN),
                         new Point(15, 70, Point.CARTESIAN),
-                        new Point(39, 72, Point.CARTESIAN) // 38
+                        new Point(39, 72.5, Point.CARTESIAN) // 38
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
@@ -172,7 +172,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
     public static PathChain pickup4Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(39, 72, Point.CARTESIAN),
+                        new Point(39, 72.5, Point.CARTESIAN),
                         new Point(31, 73, Point.CARTESIAN),
                         new Point(20, 45, Point.CARTESIAN)
                 ))
@@ -188,8 +188,8 @@ public class FiveSpecimenAuto extends LinearOpMode {
         return new PathBuilder()
                 .addPath(new BezierCurve(
                         new Point(15.5, 42, Point.CARTESIAN),
-                        new Point(15, 70, Point.CARTESIAN),
-                        new Point(39, 70, Point.CARTESIAN) // 68.5 y70 x38
+                        new Point(15, 80, Point.CARTESIAN),
+                        new Point(39, 70.5, Point.CARTESIAN) // 68.5 y70 x38
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
@@ -497,11 +497,13 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                 specimenArm.new SpecimenArmEnter(),
                                 this.new FollowPreload() // SCORE PRELOAD
                         ),
-                        this.new RawDriveForward(),
-                        specimenArm.new SpecimenArmScore(),
-                        specimenArm.new doAutoClawStateOpen(),
                         new ParallelCommandGroup(
+                                this.new RawDriveForward(),
+                                specimenArm.new SpecimenArmScore()
+                        ),
 
+                        new ParallelCommandGroup(
+                                specimenArm.new doAutoClawStateOpen(),
                             specimenArm.new SpecimenArmCollect(),
                                 slideArm.new PivotSlideArmDown(),
                                 new ParallelRaceGroup(
@@ -518,11 +520,14 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                 .alongWith(
                                         this.new FollowScore1Specimen() // SCORE FIRST SAMPLE
                                 ),
-                        this.new RawDriveForward(),
-                        specimenArm.new SpecimenArmScore(),
-
-                        specimenArm.new doAutoClawStateOpen(),
                         new ParallelCommandGroup(
+                                this.new RawDriveForward(),
+                            specimenArm.new SpecimenArmScore()
+                        ),
+
+
+                        new ParallelCommandGroup(
+                                specimenArm.new doAutoClawStateOpen(),
                             specimenArm.new SpecimenArmCollect(),
                                 new ParallelRaceGroup(
                                     this.new FollowPickup2Specimen(), // PICKUP SECOND SAMPLE
@@ -536,10 +541,13 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                 .alongWith(
                                         this.new FollowScore2Specimen() // Score second sample
                                 ),
-                        this.new RawDriveForward(),
-                        specimenArm.new SpecimenArmScore(),
-                        specimenArm.new doAutoClawStateOpen(),
                         new ParallelCommandGroup(
+                                this.new RawDriveForward(),
+                                specimenArm.new SpecimenArmScore()
+                        ),
+
+                        new ParallelCommandGroup(
+                                specimenArm.new doAutoClawStateOpen(),
                                 specimenArm.new SpecimenArmCollect(),
                                 new ParallelRaceGroup(
                                         this.new FollowPickup3Specimen(), // PICKUP third SAMPLE
@@ -553,10 +561,13 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                 .alongWith(
                                         this.new FollowScore3Specimen() // score third sample
                                 ),
-                        this.new RawDriveForward(),
-                        specimenArm.new SpecimenArmScore(),
-                        specimenArm.new doAutoClawStateOpen(),
                         new ParallelCommandGroup(
+                                this.new RawDriveForward(),
+                                specimenArm.new SpecimenArmScore()
+                        ),
+
+                        new ParallelCommandGroup(
+                                specimenArm.new doAutoClawStateOpen(),
                                 specimenArm.new SpecimenArmCollect(),
                                 new ParallelRaceGroup(
                                         this.new FollowPickup4Specimen(), // PICKUP fourth SAMPLE
@@ -571,8 +582,10 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                 this.new FollowScore4Specimen(), // score fourth sample
                                 slideArm.new wristReady()
                                 ),
-                        this.new RawDriveForward(),
-                        specimenArm.new SpecimenArmScore(),
+                        new ParallelCommandGroup(
+                                this.new RawDriveForward(),
+                                specimenArm.new SpecimenArmScore()
+                        ),
                         specimenArm.new doAutoClawStateOpen(),
                         specimenArm.new SpecimenArmCollect()
                 )
