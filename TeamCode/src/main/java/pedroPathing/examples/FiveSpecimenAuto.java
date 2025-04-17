@@ -71,11 +71,16 @@ public class FiveSpecimenAuto extends LinearOpMode {
     }
     public static PathChain pushSamples() {
         return new PathBuilder()
-                .addPath(new BezierCurve( // after place, goes to first sample
+                .addPath(new BezierLine(
                         new Point(38.5, 83, Point.CARTESIAN),
+                        new Point(30,45, Point.CARTESIAN)
+                ))
+                .setLinearHeadingInterpolation(Math.toRadians(10), Math.toRadians(0))
+                .addPath(new BezierCurve( // after place, goes to first sample
+                        new Point(30, 45, Point.CARTESIAN),
                         new Point(0, 60.0, Point.CARTESIAN), //x:0.7 y:43.8
                         new Point(50.0, 30.5, Point.CARTESIAN))) //x:53.5, y:28
-                .setLinearHeadingInterpolation(Math.toRadians(10), Math.toRadians(0))
+                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierCurve( // pushes first sample
                         new Point(50.0, 30.5, Point.CARTESIAN),//x:53.5, y:28
                         new Point(80, 25, Point.CARTESIAN),
