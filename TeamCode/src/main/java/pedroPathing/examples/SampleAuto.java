@@ -103,20 +103,25 @@ public class SampleAuto extends LinearOpMode {
         return new PathBuilder()
                 .addPath(new BezierLine(
                         new Point(13, 126, Point.CARTESIAN), //17.6, 125.6
-                        new Point(35.6, 134.5, Point.CARTESIAN)
+                        new Point(35, 126, Point.CARTESIAN)
                 ))
-                .setLinearHeadingInterpolation(Math.toRadians(-40), Math.toRadians(37.5))
+                .setLinearHeadingInterpolation(Math.toRadians(-40), Math.toRadians(30)) //37.5
                 .setZeroPowerAccelerationMultiplier(4.0)//35
+                .addPath(new BezierLine(
+                        new Point(35,126, Point.CARTESIAN),
+                        new Point(35, 131, Point.CARTESIAN)
+                ))
+                .setLinearHeadingInterpolation(Math.toRadians(30), Math.toRadians(30))
                 .build();
     }
     public static PathChain score3Sample() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(35.6, 134.5, Point.CARTESIAN),
+                        new Point(35, 131, Point.CARTESIAN),
                         new Point (32,110, Point.CARTESIAN),
                         new Point(10.75, 124.0, Point.CARTESIAN)
                 ))
-                .setLinearHeadingInterpolation(Math.toRadians(37.5), Math.toRadians(-45)) //38.5
+                .setLinearHeadingInterpolation(Math.toRadians(30), Math.toRadians(-45)) //38.5
                 .build();
     }
     public static PathChain fixRotation() {
@@ -458,8 +463,9 @@ public class SampleAuto extends LinearOpMode {
                                 this.new FollowIntake3Sample()
                                 //slideArm.new ExtendSlideToSample1()
                         ),
-                        new WaitCommand(500),
                         slideArm.new wristGather(),
+                        new WaitCommand(500),
+                        //slideArm.new wristGather(),
                         this.new IntakeSample().withTimeout((long) SlideArm.AUTO_INTAKE_DIAG_PICKUP_THRESHOLD),
                         slideArm.new stopIntake(),
                         new ParallelCommandGroup(
