@@ -65,7 +65,7 @@ public class SpecimenArm {
     public static double MOVE_SPEED_TO_ENTER = 0.8;
     public static double COLLECT_SPEED =0.0;
     public static double R_SHOULDER_RESET_POWER = -0.2;
-    public static double SPECIMENCLAW_CLOSE_TIME = 2000.0;//200.0;//100.0;//50.0;
+    public static double SPECIMENCLAW_CLOSE_TIME = 200.0;//200.0;//100.0;//50.0;
 
 
 
