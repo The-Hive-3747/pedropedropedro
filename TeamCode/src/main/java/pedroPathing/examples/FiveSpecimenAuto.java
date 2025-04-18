@@ -97,23 +97,23 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine( // goes to third sample
                         new Point(25, 11, Point.CARTESIAN),
-                        new Point(44.5, 12.5, Point.CARTESIAN))) //x:48, y:10 //x:47 royd
+                        new Point(44.5, 15, Point.CARTESIAN))) //y13.5 / x:48, y:10 //x:47 royd
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierCurve( // pushes third sample
-                        new Point(44.5, 12.5, Point.CARTESIAN), //x:48, y:10// change this y if the robot is hitting the wall at the beginning of the path
-                        new Point(70, 8.3, Point.CARTESIAN), //6.2 /  0.6 / change this y if the robot is hitting the wall at the middle of the path
-                        new Point(55, 7, Point.CARTESIAN))) // change this y if the robot is hitting the wall at the end of the path
+                        new Point(44.5, 15, Point.CARTESIAN), // y13.5 / x:48, y:10// change this y if the robot is hitting the wall at the beginning of the path
+                         new Point(70, 10, Point.CARTESIAN), //6.2 /  0.6 / change this y if the robot is hitting the wall at the middle of the path
+                        new Point(55, 8, Point.CARTESIAN))) // change this y if the robot is hitting the wall at the end of the path
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine(
-                        new Point(55,7,Point.CARTESIAN),
-                        new Point(8,7, Point.CARTESIAN)))
+                        new Point(55,8,Point.CARTESIAN),
+                        new Point(8,6.5, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
     }
     public static PathChain score1Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(8, 7, Point.CARTESIAN),
+                        new Point(8, 6.5, Point.CARTESIAN),
                         new Point(13.5, 70, Point.CARTESIAN),
                         new Point(39, 76.5, Point.CARTESIAN)
                 ))
@@ -514,7 +514,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                 new ParallelRaceGroup(
                                     this.new FollowPushSamples(),
                                     this.new closeClawUsingSensor()
-                                ).withTimeout(10250) // TODO: make this smart
+                                ).withTimeout(10250) //10250) // TODO: make this smart
                         ),
                         new WaitCommand(TIME_CLAW_WAIT),
                         // PUSH SAMPLES

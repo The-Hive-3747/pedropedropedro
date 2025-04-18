@@ -151,7 +151,7 @@ public class SlideArm {
     public static double WRIST_READY_POS = 0.32; //0.4; //0.33; //0.12; old servo
     public static double WRIST_GATHER_POS = 0.18; // 0.15;
     public static double WRIST_SCORE_POS = 0.6; //0.5; //1; // 0.7 0.5
-    public static double AUTO_INTAKE_THRESHOLD = 700.0;//600.0;//800.0;
+    public static double AUTO_INTAKE_THRESHOLD = 640.0;//700 //600.0;//800.0;
     public static double AUTO_INTAKE_PICKUP_THRESHOLD = 450;//300.0; //650.0; //700.0; //640.0; //600.0; //550.0; //600.0;
     public static double AUTO_FIRST_INTAKE_PICKUP_THRESHOLD = 800.0;//500.0; TODO: if color sensor broken, use 500
     public static double AUTO_INTAKE_DIAG_PICKUP_THRESHOLD = 800.0;//1200.0; //900.0; TODO: if color sensor broken, use 900
@@ -1888,6 +1888,8 @@ public class SlideArm {
             return (isDone);
         }
     }
+
+
 
     public class stopIntake extends CommandBase {
         boolean isDone = false;

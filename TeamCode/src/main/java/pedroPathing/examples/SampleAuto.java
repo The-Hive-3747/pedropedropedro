@@ -55,14 +55,14 @@ public class SampleAuto extends LinearOpMode {
                 .addPath(new BezierCurve(
                         new Point(8, 111, Point.CARTESIAN),
                         new Point(15, 114.3, Point.CARTESIAN),
-                        new Point(9.6, 124.0, Point.CARTESIAN)))
+                        new Point(7.6, 126.0, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-45))
                 .build();
     }
     public static PathChain intake1Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine( // after place, goes to first sample
-                        new Point(9.6, 124.0, Point.CARTESIAN),
+                        new Point(7.6, 126.0, Point.CARTESIAN),
                         new Point(24.25, 121.5, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(0))
                 .build();
@@ -109,7 +109,7 @@ public class SampleAuto extends LinearOpMode {
                 .setZeroPowerAccelerationMultiplier(4.0)//35
                 .addPath(new BezierLine(
                         new Point(35,126, Point.CARTESIAN),
-                        new Point(35, 131, Point.CARTESIAN)
+                        new Point(34, 130.5, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(30), Math.toRadians(30))
                 .build();
@@ -117,9 +117,9 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain score3Sample() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(35, 131, Point.CARTESIAN),
+                        new Point(34, 130.5, Point.CARTESIAN),
                         new Point (32,110, Point.CARTESIAN),
-                        new Point(10.75, 124.0, Point.CARTESIAN)
+                        new Point(11.25, 124.0, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(30), Math.toRadians(-45)) //38.5
                 .build();
@@ -127,7 +127,7 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain fixRotation() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(10.75, 124.0, Point.CARTESIAN),
+                        new Point(11.25, 124.0, Point.CARTESIAN),
                         new Point(47,126, Point.CARTESIAN),
                         new Point(42,107, Point.CARTESIAN)
                 ))
