@@ -56,7 +56,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
     private static TelemetryPacket packet;
     private double PUSH_SAMPLES_X_BARRIER = 25;
     private int TOUCH_SENSOR_TIMER_FLASH_TIME = 1000;
-    private long TIME_CLAW_WAIT = 200;
+    private long TIME_CLAW_WAIT = 175;//200;
     private boolean backupUsed = false;
 
     private Follower follower;

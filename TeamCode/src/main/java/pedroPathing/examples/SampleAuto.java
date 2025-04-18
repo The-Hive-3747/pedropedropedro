@@ -55,14 +55,14 @@ public class SampleAuto extends LinearOpMode {
                 .addPath(new BezierCurve(
                         new Point(8, 111, Point.CARTESIAN),
                         new Point(15, 114.3, Point.CARTESIAN),
-                        new Point(7.6, 126.0, Point.CARTESIAN)))
+                        new Point(9.1, 123.5, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-45))
                 .build();
     }
     public static PathChain intake1Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine( // after place, goes to first sample
-                        new Point(7.6, 126.0, Point.CARTESIAN),
+                        new Point(9.1, 123.5, Point.CARTESIAN),
                         new Point(24.25, 121.5, Point.CARTESIAN)))
                 .setLinearHeadingInterpolation(Math.toRadians(-45), Math.toRadians(0))
                 .build();
@@ -71,7 +71,7 @@ public class SampleAuto extends LinearOpMode {
         return new PathBuilder()
                 .addPath(new BezierLine(
                         new Point(24.25, 121.5, Point.CARTESIAN),
-                        new Point(12.9, 127.7, Point.CARTESIAN)
+                        new Point(12.9, 126.7, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-40))
                 .build();
@@ -81,8 +81,8 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain intake2Sample() {
         return new PathBuilder()
                 .addPath(new BezierLine(
-                        new Point(12.9, 127.7, Point.CARTESIAN),
-                        new Point(23.75, 130.25, Point.CARTESIAN)
+                        new Point(12.9, 126.7, Point.CARTESIAN),
+                        new Point(23.75, 129.75, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(-40), Math.toRadians(0))
                 .build();
@@ -91,7 +91,7 @@ public class SampleAuto extends LinearOpMode {
     public static PathChain score2Sample() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(23.75, 130.25, Point.CARTESIAN),
+                        new Point(23.75, 129.75, Point.CARTESIAN),
                         new Point(20.1, 127.5, Point.CARTESIAN),
                         new Point(13, 126, Point.CARTESIAN) //17.6, 125.6
                 ))
@@ -464,7 +464,7 @@ public class SampleAuto extends LinearOpMode {
                                 //slideArm.new ExtendSlideToSample1()
                         ),
                         slideArm.new wristGather(),
-                        new WaitCommand(500),
+                        new WaitCommand(400), //500
                         //slideArm.new wristGather(),
                         this.new IntakeSample().withTimeout((long) SlideArm.AUTO_INTAKE_DIAG_PICKUP_THRESHOLD),
                         slideArm.new stopIntake(),
@@ -475,11 +475,12 @@ public class SampleAuto extends LinearOpMode {
                         ),
                         slideArm.new ExtendSlideArm(),
                         slideArm.new wristScore(),
-                        new WaitCommand(250),
+                        new WaitCommand(200), //250
                         slideArm.new IntakeScore(),
                         //new WaitCommand(500),
                         slideArm.new stopIntake(),
                         slideArm.new wristReady(),
+                        //Comp 2 evening changed rectract
                         slideArm.new RetractSlideArm().withTimeout(1500),
                         new ParallelCommandGroup(
                                 slideArm.new PivotSlideArmDown().withTimeout(1000),

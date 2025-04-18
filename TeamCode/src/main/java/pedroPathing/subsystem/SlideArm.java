@@ -154,7 +154,7 @@ public class SlideArm {
     public static double AUTO_INTAKE_THRESHOLD = 640.0;//700 //600.0;//800.0;
     public static double AUTO_INTAKE_PICKUP_THRESHOLD = 450;//300.0; //650.0; //700.0; //640.0; //600.0; //550.0; //600.0;
     public static double AUTO_FIRST_INTAKE_PICKUP_THRESHOLD = 800.0;//500.0; TODO: if color sensor broken, use 500
-    public static double AUTO_INTAKE_DIAG_PICKUP_THRESHOLD = 800.0;//1200.0; //900.0; TODO: if color sensor broken, use 900
+    public static double AUTO_INTAKE_DIAG_PICKUP_THRESHOLD = 600.0;//800.0;//1200.0; //900.0; TODO: if color sensor broken, use 900
     public static double INTAKE_LEFT_POWER = -0.8;
     public static double INTAKE_RIGHT_POWER = -0.8;
     public static double INTAKE_LEFT_POWER_SCORE = 0.8;
