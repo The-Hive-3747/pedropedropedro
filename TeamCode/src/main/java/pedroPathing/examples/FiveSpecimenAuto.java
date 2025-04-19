@@ -41,12 +41,12 @@ public class FiveSpecimenAuto extends LinearOpMode {
     private SlideArm slideArm = null;
     private SpecimenArm specimenArm = null;
     private CommandScheduler scheduler = null;
-    private double RAW_DRIVE_TIME = 200.0; //250.0;
+    private double RAW_DRIVE_TIME = 150.0;//175.0;//190.0;//shh200.0; //250.0;
     private DcMotor leftFront = null;
     private DcMotor rightFront = null;
     private DcMotor leftBack = null;
     private DcMotor rightBack = null;
-    private double DRIVE_POWER = 0.3;
+    private double DRIVE_POWER = 0.5;//0.4;//0.3;
     private boolean isPreload = false;
     private boolean touchSensorHit = false;
     private Pose limelightPose = null;
@@ -57,6 +57,9 @@ public class FiveSpecimenAuto extends LinearOpMode {
     private double PUSH_SAMPLES_X_BARRIER = 25;
     private int TOUCH_SENSOR_TIMER_FLASH_TIME = 1000;
     private long TIME_CLAW_WAIT = 175;//200;
+    private long CLAW_FIRST_SCORE_TIME = 50;
+    private long CLAW_SCORE_TIME = 40;
+    private long CLAW_SCORE_TIME_LAST = 20;
     private boolean backupUsed = false;
 
     private Follower follower;
@@ -66,7 +69,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 .addPath(new BezierLine(
                         new Point(8, 61.5, Point.CARTESIAN),
                         new Point(38.5, 83, Point.CARTESIAN))) //75
-                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(10))
+                .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(5))
                 .build();
     }
     public static PathChain pushSamples() {
@@ -75,7 +78,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
                         new Point(38.5, 83, Point.CARTESIAN),
                         //new Point(32.5, 10, Point.CARTESIAN),
                         new Point(28,43, Point.CARTESIAN)))//25, 42
-                .setLinearHeadingInterpolation(Math.toRadians(10), Math.toRadians(0))
+                .setLinearHeadingInterpolation(Math.toRadians(5), Math.toRadians(0))
                 .addPath(new BezierLine( // after place, goes to first sample
                         new Point(28, 43, Point.CARTESIAN), //25, 42
                         //new Point(0, 60.0, Point.CARTESIAN), //x:0.7 y:43.8
@@ -106,15 +109,14 @@ public class FiveSpecimenAuto extends LinearOpMode {
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .addPath(new BezierLine(
                         new Point(55,8,Point.CARTESIAN),
-                        new Point(8,6.5, Point.CARTESIAN)))
+                        new Point(7,6.5, Point.CARTESIAN))) //x:8
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                 .build();
     }
     public static PathChain score1Specimen() {
         return new PathBuilder()
                 .addPath(new BezierCurve(
-                        new Point(8, 6.5, Point.CARTESIAN),
-                        new Point(13.5, 70, Point.CARTESIAN),
+                             new Point(20, 70, Point.CARTESIAN), //x:13.5
                         new Point(39, 76.5, Point.CARTESIAN)
                 ))
                 .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
@@ -492,7 +494,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
         leftLight.setColor(IndicatorLight.COLOR_RED);
         rightLight.setColor(IndicatorLight.COLOR_RED);
         scheduler = CommandScheduler.getInstance();
-
+// claw close :200, spec enter: 500, speci score: 220, claw open: 140,
         scheduler.schedule(
                 new SequentialCommandGroup(
                         new ParallelCommandGroup(
@@ -504,12 +506,15 @@ public class FiveSpecimenAuto extends LinearOpMode {
                         ),
                         new ParallelCommandGroup(
                                 this.new RawDriveForward(),
-                                specimenArm.new SpecimenArmScore()
+                                new SequentialCommandGroup(
+                                        new WaitCommand(CLAW_FIRST_SCORE_TIME),
+                                        specimenArm.new SpecimenArmScore()
+                                )
                         ),
 
                         new ParallelCommandGroup(
                                 specimenArm.new doAutoClawStateOpen(),
-                            specimenArm.new SpecimenArmCollect(),
+                                specimenArm.new SpecimenArmCollect(),
                                 slideArm.new PivotSlideArmDown(),
                                 new ParallelRaceGroup(
                                     this.new FollowPushSamples(),
@@ -527,9 +532,11 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                 ),
                         new ParallelCommandGroup(
                                 this.new RawDriveForward(),
-                            specimenArm.new SpecimenArmScore()
+                                new SequentialCommandGroup(
+                                        new WaitCommand(CLAW_SCORE_TIME),
+                                        specimenArm.new SpecimenArmScore()
+                                )
                         ),
-
 
                         new ParallelCommandGroup(
                                 specimenArm.new doAutoClawStateOpen(),
@@ -548,7 +555,10 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                 ),
                         new ParallelCommandGroup(
                                 this.new RawDriveForward(),
-                                specimenArm.new SpecimenArmScore()
+                                new SequentialCommandGroup(
+                                        new WaitCommand(CLAW_SCORE_TIME),
+                                        specimenArm.new SpecimenArmScore()
+                                )
                         ),
 
                         new ParallelCommandGroup(
@@ -568,7 +578,10 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                 ),
                         new ParallelCommandGroup(
                                 this.new RawDriveForward(),
-                                specimenArm.new SpecimenArmScore()
+                                new SequentialCommandGroup(
+                                        new WaitCommand(CLAW_SCORE_TIME),
+                                        specimenArm.new SpecimenArmScore()
+                                )
                         ),
 
                         new ParallelCommandGroup(
@@ -589,7 +602,10 @@ public class FiveSpecimenAuto extends LinearOpMode {
                                 ),
                         new ParallelCommandGroup(
                                 this.new RawDriveForward(),
-                                specimenArm.new SpecimenArmScore()
+                                new SequentialCommandGroup(
+                                        new WaitCommand(CLAW_SCORE_TIME_LAST),
+                                        specimenArm.new SpecimenArmScore()
+                                )
                         ),
                         specimenArm.new doAutoClawStateOpen(),
                         specimenArm.new SpecimenArmCollect()
