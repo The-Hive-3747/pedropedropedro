@@ -42,6 +42,7 @@ public class FiveSpecimenAuto extends LinearOpMode {
     private SpecimenArm specimenArm = null;
     private CommandScheduler scheduler = null;
     private double RAW_DRIVE_TIME = 150.0;//175.0;//190.0;//shh200.0; //250.0;
+    private double RAW_DRIVE_TIME_SCORE_2 = 125.0;
     private DcMotor leftFront = null;
     private DcMotor rightFront = null;
     private DcMotor leftBack = null;
@@ -235,6 +236,52 @@ public class FiveSpecimenAuto extends LinearOpMode {
             }
 
             if (driveTime.milliseconds()>RAW_DRIVE_TIME) {
+                leftBack.setPower(0);
+                rightBack.setPower(0);
+                leftFront.setPower(0);
+                rightFront.setPower(0);
+                isDone=true;
+            }
+        }
+        @Override
+        public boolean isFinished() {
+            return isDone;
+        }
+    }
+    public class RawDriveForwardScore2 extends CommandBase {
+        ElapsedTime driveTime = null;
+        boolean firstTime = true;
+        boolean isDone = false;
+        public RawDriveForwardScore2() {}
+        @Override
+        public void initialize() {
+            driveTime = new ElapsedTime();
+            firstTime= true;
+            isDone = false;
+        }
+        @Override
+        public void execute() {
+            pathState = "rawDrive";
+            if (firstTime) {
+                driveTime.reset();
+                firstTime = false;
+                follower.breakFollowing();
+                leftBack.setPower(DRIVE_POWER);
+                rightBack.setPower(DRIVE_POWER);
+                leftFront.setPower(DRIVE_POWER);
+                rightFront.setPower(DRIVE_POWER);
+                leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                /*if (isPreload) {
+                    RAW_DRIVE_TIME = 400;
+                } else {
+                    RAW_DRIVE_TIME = 150;
+                }*/
+            }
+
+            if (driveTime.milliseconds()>RAW_DRIVE_TIME_SCORE_2) {
                 leftBack.setPower(0);
                 rightBack.setPower(0);
                 leftFront.setPower(0);
